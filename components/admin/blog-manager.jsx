@@ -1,516 +1,806 @@
-"use client"
+'use client';
 
-import { useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { toast } from "@/components/ui/use-toast"
-import { Pencil, Trash2, Upload, Loader2 } from "lucide-react"
-import { db, storage } from "@/lib/firebase"
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import {
+	AlertCircle,
+	CheckCircle,
+	Loader2,
+	Pencil,
+	Trash2,
+	Upload,
+} from 'lucide-react';
+import {
+	Card,
+	CardContent,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from '@/components/ui/card';
+import {
+	addDoc,
+	collection,
+	deleteDoc,
+	doc,
+	getDocs,
+	setDoc,
+	updateDoc,
+	writeBatch,
+} from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { useEffect, useRef, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/components/ui/use-toast';
 
 export default function BlogManager() {
-  const [posts, setPosts] = useState([])
-  const [isEditing, setIsEditing] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [currentPost, setCurrentPost] = useState({
-    id: null,
-    title: "",
-    description: "",
-    content: "",
-    date: "",
-    category: "",
-    image: "/placeholder.svg?height=200&width=400",
-    slug: "",
-  })
+	const [posts, setPosts] = useState([]);
+	const [isEditing, setIsEditing] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
+	const [saveStatus, setSaveStatus] = useState(null); // null, 'saving', 'success', 'error'
+	const [currentPost, setCurrentPost] = useState({
+		id: null,
+		title: '',
+		description: '',
+		content: '',
+		date: '',
+		category: '',
+		image: '/placeholder.svg?height=200&width=400',
+		slug: '',
+	});
 
-  const imageFileRef = useRef(null)
+	const imageFileRef = useRef(null);
 
-  useEffect(() => {
-    // Cargar posts de Firestore
-    const loadPosts = async () => {
-      try {
-        setIsLoading(true)
-        const querySnapshot = await getDocs(collection(db, "blogPosts"))
-        const loadedPosts = []
+	useEffect(() => {
+		// Cargar posts de Firestore
+		const loadPosts = async () => {
+			try {
+				setIsLoading(true);
 
-        querySnapshot.forEach((doc) => {
-          loadedPosts.push({
-            id: doc.id,
-            ...doc.data(),
-          })
-        })
+				// Intentar cargar desde localStorage primero para mostrar algo rápido
+				try {
+					const cachedPosts = localStorage.getItem('cachedBlogPosts');
+					if (cachedPosts) {
+						const parsed = JSON.parse(cachedPosts);
+						if (Array.isArray(parsed) && parsed.length > 0) {
+							setPosts(parsed);
+						}
+					}
+				} catch (cacheError) {
+					console.error('Error loading from cache:', cacheError);
+				}
 
-        if (loadedPosts.length > 0) {
-          setPosts(loadedPosts)
-        } else {
-          // Datos iniciales de ejemplo
-          const initialPosts = [
-            {
-              title: "Cómo desarrollar un equipo comercial de alto rendimiento",
-              description:
-                "Estrategias probadas para formar y liderar equipos de ventas que superan consistentemente sus objetivos.",
-              content: "Contenido completo del artículo...",
-              date: "10 de marzo de 2023",
-              category: "Liderazgo",
-              image: "/placeholder.svg?height=200&width=400",
-              slug: "como-desarrollar-equipo-comercial-alto-rendimiento",
-            },
-            {
-              title: "5 errores comunes en el proceso de venta y cómo evitarlos",
-              description:
-                "Identifica y corrige los errores más frecuentes que cometen los vendedores y que afectan negativamente los resultados.",
-              content: "Contenido completo del artículo...",
-              date: "25 de febrero de 2023",
-              category: "Ventas",
-              image: "/placeholder.svg?height=200&width=400",
-              slug: "5-errores-comunes-proceso-venta",
-            },
-          ]
+				// Luego intentar cargar desde Firestore
+				try {
+					const querySnapshot = await getDocs(collection(db, 'blogPosts'));
+					const loadedPosts = [];
 
-          // Guardar posts iniciales en Firestore
-          for (const post of initialPosts) {
-            await addDoc(collection(db, "blogPosts"), post)
-          }
+					querySnapshot.forEach((doc) => {
+						loadedPosts.push({
+							id: doc.id,
+							...doc.data(),
+						});
+					});
 
-          // Cargar nuevamente los posts
-          const newQuerySnapshot = await getDocs(collection(db, "blogPosts"))
-          const newLoadedPosts = []
+					if (loadedPosts.length > 0) {
+						setPosts(loadedPosts);
+						// Actualizar caché
+						localStorage.setItem(
+							'cachedBlogPosts',
+							JSON.stringify(loadedPosts)
+						);
+					} else {
+						// Datos iniciales de ejemplo
+						const initialPosts = [
+							{
+								title:
+									'Cómo desarrollar un equipo comercial de alto rendimiento',
+								description:
+									'Estrategias probadas para formar y liderar equipos de ventas que superan consistentemente sus objetivos.',
+								content: 'Contenido completo del artículo...',
+								date: '10 de marzo de 2023',
+								category: 'Liderazgo',
+								image: '/placeholder.svg?height=200&width=400',
+								slug: 'como-desarrollar-equipo-comercial-alto-rendimiento',
+							},
+							{
+								title:
+									'5 errores comunes en el proceso de venta y cómo evitarlos',
+								description:
+									'Identifica y corrige los errores más frecuentes que cometen los vendedores y que afectan negativamente los resultados.',
+								content: 'Contenido completo del artículo...',
+								date: '25 de febrero de 2023',
+								category: 'Ventas',
+								image: '/placeholder.svg?height=200&width=400',
+								slug: '5-errores-comunes-proceso-venta',
+							},
+						];
 
-          newQuerySnapshot.forEach((doc) => {
-            newLoadedPosts.push({
-              id: doc.id,
-              ...doc.data(),
-            })
-          })
+						// Guardar posts iniciales en Firestore
+						for (const post of initialPosts) {
+							await addDoc(collection(db, 'blogPosts'), post);
+						}
 
-          setPosts(newLoadedPosts)
-        }
-      } catch (error) {
-        console.error("Error loading blog posts:", error)
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los artículos del blog.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
+						// Cargar nuevamente los posts
+						const newQuerySnapshot = await getDocs(collection(db, 'blogPosts'));
+						const newLoadedPosts = [];
 
-    loadPosts()
-  }, [])
+						newQuerySnapshot.forEach((doc) => {
+							newLoadedPosts.push({
+								id: doc.id,
+								...doc.data(),
+							});
+						});
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setCurrentPost({
-      ...currentPost,
-      [name]: value,
-    })
-  }
+						setPosts(newLoadedPosts);
+						localStorage.setItem(
+							'cachedBlogPosts',
+							JSON.stringify(newLoadedPosts)
+						);
+					}
+				} catch (firestoreError) {
+					console.error('Error loading from Firestore:', firestoreError);
+					toast({
+						title: 'Error de conexión',
+						description:
+							'No se pudieron cargar los artículos desde la base de datos. Se mostrarán datos en caché si están disponibles.',
+						variant: 'destructive',
+					});
+				}
+			} catch (error) {
+				console.error('General error loading blog posts:', error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
+		loadPosts();
+	}, []);
 
-    // Validar tipo de archivo
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Por favor, selecciona un archivo de imagen válido.",
-        variant: "destructive",
-      })
-      return
-    }
+	const handleInputChange = (e) => {
+		const { name, value } = e.target;
+		setCurrentPost({
+			...currentPost,
+			[name]: value,
+		});
+	};
 
-    // Validar tamaño (máximo 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "La imagen es demasiado grande. El tamaño máximo es 2MB.",
-        variant: "destructive",
-      })
-      return
-    }
+	const handleImageUpload = async (e) => {
+		const file = e.target.files[0];
+		if (!file) return;
 
-    try {
-      setIsLoading(true)
+		// Validar tipo de archivo
+		if (!file.type.startsWith('image/')) {
+			toast({
+				title: 'Error',
+				description: 'Por favor, selecciona un archivo de imagen válido.',
+				variant: 'destructive',
+			});
+			return;
+		}
 
-      // Subir a Firebase Storage
-      const storageRef = ref(storage, `blog/${file.name}`)
-      await uploadBytes(storageRef, file)
-      const downloadURL = await getDownloadURL(storageRef)
+		// Validar tamaño (máximo 2MB)
+		if (file.size > 2 * 1024 * 1024) {
+			toast({
+				title: 'Error',
+				description: 'La imagen es demasiado grande. El tamaño máximo es 2MB.',
+				variant: 'destructive',
+			});
+			return;
+		}
 
-      setCurrentPost((prev) => ({
-        ...prev,
-        image: downloadURL,
-      }))
+		try {
+			setIsLoading(true);
 
-      toast({
-        title: "Imagen subida",
-        description: "La imagen se ha subido correctamente.",
-      })
-    } catch (error) {
-      console.error("Error uploading image:", error)
-      toast({
-        title: "Error",
-        description: "No se pudo subir la imagen.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+			// Subir a Firebase Storage
+			const storageRef = ref(storage, `blog/${file.name}`);
+			await uploadBytes(storageRef, file);
+			const downloadURL = await getDownloadURL(storageRef);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+			setCurrentPost((prev) => ({
+				...prev,
+				image: downloadURL,
+			}));
 
-    try {
-      setIsLoading(true)
+			toast({
+				title: 'Imagen subida',
+				description: 'La imagen se ha subido correctamente.',
+			});
+		} catch (error) {
+			console.error('Error uploading image:', error);
+			toast({
+				title: 'Error',
+				description: 'No se pudo subir la imagen.',
+				variant: 'destructive',
+			});
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
-      // Validar que todos los campos requeridos estén presentes
-      if (!currentPost.title.trim() || !currentPost.description.trim() || !currentPost.content.trim()) {
-        toast({
-          title: "Error",
-          description: "Por favor completa todos los campos requeridos",
-          variant: "destructive",
-        })
-        setIsLoading(false)
-        return
-      }
+	// Función para guardar directamente en localStorage
+	const saveToLocalStorage = (newPosts) => {
+		try {
+			localStorage.setItem('cachedBlogPosts', JSON.stringify(newPosts));
+			console.log('Saved to localStorage successfully');
+			return true;
+		} catch (error) {
+			console.error('Error saving to localStorage:', error);
+			return false;
+		}
+	};
 
-      // Generar slug si no existe
-      let slug = currentPost.slug
-      if (!slug) {
-        slug = currentPost.title
-          .toLowerCase()
-          .replace(/[^\w\s]/gi, "")
-          .replace(/\s+/g, "-")
-      }
+	// Función para guardar en Firestore con reintentos
+	const saveToFirestore = async (postData, isUpdate = false) => {
+		let retryCount = 0;
+		const maxRetries = 3;
+		let success = false;
+		let docRef = null;
+		let error = null;
 
-      // Generar fecha actual si no existe
-      let date = currentPost.date
-      if (!date) {
-        const now = new Date()
-        date = `${now.getDate()} de ${getMonthName(now.getMonth())} de ${now.getFullYear()}`
-      }
+		while (retryCount < maxRetries && !success) {
+			try {
+				if (isUpdate) {
+					// Actualizar documento existente
+					const postRef = doc(db, 'blogPosts', postData.id);
+					await updateDoc(postRef, postData);
+					success = true;
+				} else {
+					// Crear nuevo documento
+					const dataToSave = { ...postData };
+					delete dataToSave.id; // Eliminar id nulo antes de guardar
 
-      let result
+					// Intentar usar setDoc con ID generado manualmente si addDoc falla
+					if (retryCount > 0) {
+						const newId = `post_${Date.now()}_${Math.floor(
+							Math.random() * 1000
+						)}`;
+						const postRef = doc(db, 'blogPosts', newId);
+						await setDoc(postRef, dataToSave);
+						docRef = { id: newId };
+					} else {
+						docRef = await addDoc(collection(db, 'blogPosts'), dataToSave);
+					}
+					success = true;
+				}
+			} catch (err) {
+				error = err;
+				console.error(`Error en intento ${retryCount + 1}:`, err);
+				retryCount++;
 
-      if (isEditing) {
-        // Actualizar post existente en Firestore
-        const postRef = doc(db, "blogPosts", currentPost.id)
-        const updatedPost = {
-          ...currentPost,
-          slug,
-          date,
-        }
+				// Esperar antes de reintentar (backoff exponencial)
+				await new Promise((resolve) =>
+					setTimeout(resolve, 1000 * Math.pow(2, retryCount))
+				);
+			}
+		}
 
-        result = await updateDoc(postRef, updatedPost)
+		return { success, docRef, error };
+	};
 
-        // Actualizar estado local después de confirmar el éxito de la operación
-        if (result !== undefined) {
-          const updatedPosts = posts.map((post) => (post.id === currentPost.id ? { ...updatedPost } : post))
-          setPosts(updatedPosts)
+	const handleSubmit = async (e) => {
+		e.preventDefault();
 
-          // Actualizar también la caché local
-          localStorage.setItem("cachedBlogPosts", JSON.stringify(updatedPosts))
+		// Validar que todos los campos requeridos estén presentes
+		if (
+			!currentPost.title.trim() ||
+			!currentPost.description.trim() ||
+			!currentPost.content.trim()
+		) {
+			toast({
+				title: 'Error',
+				description: 'Por favor completa todos los campos requeridos',
+				variant: 'destructive',
+			});
+			return;
+		}
 
-          toast({
-            title: "Post actualizado correctamente",
-            description: "Los cambios han sido guardados en la base de datos",
-          })
-        }
-      } else {
-        // Crear nuevo post en Firestore con retry
-        const postData = {
-          ...currentPost,
-          slug,
-          date,
-        }
-        delete postData.id // Eliminar id nulo antes de guardar
+		try {
+			setIsLoading(true);
+			setSaveStatus('saving');
 
-        let retryCount = 0
-        let docRef
+			// Generar slug si no existe
+			let slug = currentPost.slug;
+			if (!slug) {
+				slug = currentPost.title
+					.toLowerCase()
+					.replace(/[^\w\s]/gi, '')
+					.replace(/\s+/g, '-');
+			}
 
-        while (retryCount < 3 && !docRef) {
-          try {
-            docRef = await addDoc(collection(db, "blogPosts"), postData)
-          } catch (addError) {
-            console.error(`Error en intento ${retryCount + 1} al crear post:`, addError)
-            retryCount++
+			// Generar fecha actual si no existe
+			let date = currentPost.date;
+			if (!date) {
+				const now = new Date();
+				date = `${now.getDate()} de ${getMonthName(
+					now.getMonth()
+				)} de ${now.getFullYear()}`;
+			}
 
-            if (retryCount >= 3) {
-              throw addError // Propagar el error después de 3 intentos
-            }
+			const postToSave = {
+				...currentPost,
+				slug,
+				date,
+			};
 
-            // Esperar antes de reintentar
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-          }
-        }
+			// Primero actualizar la UI optimistamente
+			let updatedPosts;
 
-        if (docRef) {
-          // Actualizar estado local después de confirmar éxito
-          const newPost = {
-            id: docRef.id,
-            ...postData,
-          }
+			if (isEditing) {
+				// Actualizar post existente en la UI
+				updatedPosts = posts.map((post) =>
+					post.id === currentPost.id ? { ...postToSave } : post
+				);
+			} else {
+				// Crear un ID temporal para el nuevo post
+				const tempId = `temp_${Date.now()}`;
+				const newPost = {
+					...postToSave,
+					id: tempId,
+					_isTemp: true, // Marcar como temporal
+				};
+				updatedPosts = [...posts, newPost];
+			}
 
-          const newPostsList = [...posts, newPost]
-          setPosts(newPostsList)
+			// Actualizar la UI inmediatamente
+			setPosts(updatedPosts);
 
-          // Actualizar también la caché local
-          localStorage.setItem("cachedBlogPosts", JSON.stringify(newPostsList))
+			// Guardar en localStorage como respaldo
+			saveToLocalStorage(updatedPosts);
 
-          toast({
-            title: "Post creado correctamente",
-            description: "El nuevo post ha sido guardado en la base de datos",
-          })
-        }
-      }
+			// Intentar guardar en Firestore
+			const { success, docRef, error } = await saveToFirestore(
+				postToSave,
+				isEditing
+			);
 
-      // Resetear formulario solo si la operación fue exitosa
-      resetForm()
-    } catch (error) {
-      console.error("Error saving blog post:", error)
-      toast({
-        title: "Error",
-        description: "No se pudo guardar el artículo. Intente nuevamente.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+			if (success) {
+				// Si fue exitoso, actualizar la UI con el ID real si es un nuevo post
+				if (!isEditing && docRef) {
+					const finalPosts = updatedPosts.map((post) =>
+						post._isTemp ? { ...post, id: docRef.id, _isTemp: undefined } : post
+					);
+					setPosts(finalPosts);
+					saveToLocalStorage(finalPosts);
+				}
 
-  const handleEdit = (post) => {
-    setCurrentPost(post)
-    setIsEditing(true)
-  }
+				setSaveStatus('success');
+				toast({
+					title: isEditing ? 'Artículo actualizado' : 'Artículo creado',
+					description: 'Los cambios se han guardado correctamente',
+				});
 
-  const handleDelete = async (id) => {
-    if (window.confirm("¿Está seguro que desea eliminar este post?")) {
-      try {
-        setIsLoading(true)
+				// Resetear formulario
+				resetForm();
+			} else {
+				// Si falló, mantener los datos en localStorage pero mostrar error
+				setSaveStatus('error');
+				throw error || new Error('Error desconocido al guardar');
+			}
+		} catch (error) {
+			console.error('Error saving blog post:', error);
+			setSaveStatus('error');
+			toast({
+				title: 'Error al guardar',
+				description:
+					'Los cambios se han guardado localmente, pero hubo un problema al sincronizar con la base de datos. Se intentará sincronizar más tarde.',
+				variant: 'destructive',
+			});
+		} finally {
+			setIsLoading(false);
+			// Resetear el estado de guardado después de un tiempo
+			setTimeout(() => setSaveStatus(null), 3000);
+		}
+	};
 
-        // Eliminar de Firestore
-        await deleteDoc(doc(db, "blogPosts", id))
+	const handleEdit = (post) => {
+		setCurrentPost(post);
+		setIsEditing(true);
+	};
 
-        // Actualizar estado local
-        const updatedPosts = posts.filter((post) => post.id !== id)
-        setPosts(updatedPosts)
+	const handleDelete = async (id) => {
+		if (window.confirm('¿Está seguro que desea eliminar este post?')) {
+			try {
+				setIsLoading(true);
 
-        toast({ title: "Post eliminado correctamente" })
-      } catch (error) {
-        console.error("Error deleting blog post:", error)
-        toast({
-          title: "Error",
-          description: "No se pudo eliminar el artículo.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-  }
+				// Actualizar UI optimistamente
+				const updatedPosts = posts.filter((post) => post.id !== id);
+				setPosts(updatedPosts);
+				saveToLocalStorage(updatedPosts);
 
-  const resetForm = () => {
-    setCurrentPost({
-      id: null,
-      title: "",
-      description: "",
-      content: "",
-      date: "",
-      category: "",
-      image: "/placeholder.svg?height=200&width=400",
-      slug: "",
-    })
-    setIsEditing(false)
-  }
+				// Intentar eliminar de Firestore
+				try {
+					await deleteDoc(doc(db, 'blogPosts', id));
+					toast({ title: 'Artículo eliminado correctamente' });
+				} catch (error) {
+					console.error('Error deleting from Firestore:', error);
+					toast({
+						title: 'Error de sincronización',
+						description:
+							'El artículo se ha eliminado localmente, pero hubo un problema al sincronizar con la base de datos.',
+						variant: 'destructive',
+					});
+				}
+			} catch (error) {
+				console.error('General error deleting blog post:', error);
+			} finally {
+				setIsLoading(false);
+			}
+		}
+	};
 
-  const getMonthName = (month) => {
-    const months = [
-      "enero",
-      "febrero",
-      "marzo",
-      "abril",
-      "mayo",
-      "junio",
-      "julio",
-      "agosto",
-      "septiembre",
-      "octubre",
-      "noviembre",
-      "diciembre",
-    ]
-    return months[month]
-  }
+	const resetForm = () => {
+		setCurrentPost({
+			id: null,
+			title: '',
+			description: '',
+			content: '',
+			date: '',
+			category: '',
+			image: '/placeholder.svg?height=200&width=400',
+			slug: '',
+		});
+		setIsEditing(false);
+	};
 
-  if (isLoading && posts.length === 0) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Cargando artículos...</span>
-      </div>
-    )
-  }
+	const getMonthName = (month) => {
+		const months = [
+			'enero',
+			'febrero',
+			'marzo',
+			'abril',
+			'mayo',
+			'junio',
+			'julio',
+			'agosto',
+			'septiembre',
+			'octubre',
+			'noviembre',
+			'diciembre',
+		];
+		return months[month];
+	};
 
-  return (
-    <div className="space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>{isEditing ? "Editar Artículo" : "Nuevo Artículo"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Título</Label>
-              <Input id="title" name="title" value={currentPost.title} onChange={handleInputChange} required />
-            </div>
+	// Función para sincronizar manualmente con la base de datos
+	const syncWithDatabase = async () => {
+		try {
+			setIsLoading(true);
+			toast({
+				title: 'Sincronizando',
+				description: 'Intentando sincronizar con la base de datos...',
+			});
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Descripción</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={currentPost.description}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
+			// Obtener posts actuales de Firestore
+			const querySnapshot = await getDocs(collection(db, 'blogPosts'));
+			const serverPosts = {};
 
-            <div className="space-y-2">
-              <Label htmlFor="content">Contenido</Label>
-              <Textarea
-                id="content"
-                name="content"
-                value={currentPost.content}
-                onChange={handleInputChange}
-                rows={6}
-                required
-              />
-            </div>
+			// Crear un mapa de posts del servidor
+			querySnapshot.forEach((doc) => {
+				serverPosts[doc.id] = {
+					id: doc.id,
+					...doc.data(),
+				};
+			});
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoría</Label>
-                <Input
-                  id="category"
-                  name="category"
-                  value={currentPost.category}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+			// Identificar posts que necesitan ser creados o actualizados
+			const batch = writeBatch(db);
+			let changesMade = false;
 
-              <div className="space-y-2">
-                <Label htmlFor="date">Fecha</Label>
-                <Input
-                  id="date"
-                  name="date"
-                  value={currentPost.date}
-                  onChange={handleInputChange}
-                  placeholder="Dejar en blanco para fecha actual"
-                />
-              </div>
-            </div>
+			// Procesar posts locales
+			for (const localPost of posts) {
+				// Ignorar posts temporales o sin ID
+				if (
+					localPost._isTemp ||
+					!localPost.id ||
+					localPost.id.startsWith('temp_')
+				) {
+					// Crear nuevo documento para posts temporales
+					const newData = { ...localPost };
+					delete newData.id;
+					delete newData._isTemp;
 
-            <div className="space-y-2">
-              <Label>Imagen del artículo</Label>
-              <div className="flex items-center gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => imageFileRef.current.click()}
-                  className="flex items-center gap-2"
-                  disabled={isLoading}
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  Subir imagen
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {currentPost.image && currentPost.image !== "/placeholder.svg?height=200&width=400"
-                    ? "Imagen seleccionada"
-                    : "Ninguna imagen seleccionada"}
-                </span>
-                <input
-                  type="file"
-                  ref={imageFileRef}
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-              </div>
+					const newDocRef = doc(collection(db, 'blogPosts'));
+					batch.set(newDocRef, newData);
+					changesMade = true;
+					continue;
+				}
 
-              {currentPost.image && (
-                <div className="mt-2 p-2 border rounded-md">
-                  <div className="h-40 flex items-center justify-center">
-                    <img
-                      src={currentPost.image || "/placeholder.svg"}
-                      alt="Vista previa"
-                      className="max-h-full object-contain"
-                      onError={(e) => {
-                        e.target.onerror = null
-                        e.target.src = "/placeholder.svg?height=200&width=400"
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+				// Si el post existe en el servidor, verificar si necesita actualización
+				if (serverPosts[localPost.id]) {
+					// Comparar para ver si hay diferencias
+					const serverPost = serverPosts[localPost.id];
+					if (JSON.stringify(serverPost) !== JSON.stringify(localPost)) {
+						// Hay diferencias, actualizar en el servidor
+						const postRef = doc(db, 'blogPosts', localPost.id);
+						const dataToUpdate = { ...localPost };
+						delete dataToUpdate.id; // No necesitamos el ID en los datos
 
-            <div className="flex justify-end space-x-2">
-              {isEditing && (
-                <Button type="button" variant="outline" onClick={resetForm} disabled={isLoading}>
-                  Cancelar
-                </Button>
-              )}
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isEditing ? "Actualizar" : "Crear"} Artículo
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+						batch.update(postRef, dataToUpdate);
+						changesMade = true;
+					}
 
-      <div className="space-y-4">
-        <h2 className="text-xl font-bold">Artículos Publicados</h2>
+					// Marcar como procesado
+					delete serverPosts[localPost.id];
+				} else {
+					// El post no existe en el servidor, crearlo
+					const postRef = doc(db, 'blogPosts', localPost.id);
+					const dataToCreate = { ...localPost };
+					delete dataToCreate.id;
 
-        {posts.length === 0 ? (
-          <p className="text-muted-foreground">No hay artículos publicados.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {posts.map((post) => (
-              <Card key={post.id}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{post.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {post.date} | {post.category}
-                  </p>
-                  <p className="line-clamp-2">{post.description}</p>
-                </CardContent>
-                <CardFooter className="flex justify-end space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(post)} disabled={isLoading}>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(post.id)} disabled={isLoading}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Eliminar
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
+					batch.set(postRef, dataToCreate);
+					changesMade = true;
+				}
+			}
+
+			if (changesMade) {
+				// Ejecutar el batch
+				await batch.commit();
+
+				// Recargar posts desde el servidor
+				const newQuerySnapshot = await getDocs(collection(db, 'blogPosts'));
+				const freshPosts = [];
+
+				newQuerySnapshot.forEach((doc) => {
+					freshPosts.push({
+						id: doc.id,
+						...doc.data(),
+					});
+				});
+
+				setPosts(freshPosts);
+				saveToLocalStorage(freshPosts);
+
+				toast({
+					title: 'Sincronización completada',
+					description:
+						'Los artículos se han sincronizado correctamente con la base de datos.',
+				});
+			} else {
+				toast({
+					title: 'Sincronización completada',
+					description: 'No se detectaron cambios que sincronizar.',
+				});
+			}
+		} catch (error) {
+			console.error('Error syncing with database:', error);
+			toast({
+				title: 'Error de sincronización',
+				description:
+					'No se pudieron sincronizar los artículos con la base de datos.',
+				variant: 'destructive',
+			});
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	if (isLoading && posts.length === 0) {
+		return (
+			<div className='flex justify-center items-center py-12'>
+				<Loader2 className='h-8 w-8 animate-spin text-primary' />
+				<span className='ml-2'>Cargando artículos...</span>
+			</div>
+		);
+	}
+
+	return (
+		<div className='space-y-8'>
+			<div className='flex justify-between items-center'>
+				<h2 className='text-xl font-bold'>Administrador de Blog</h2>
+				<Button
+					onClick={syncWithDatabase}
+					variant='outline'
+					disabled={isLoading}
+					className='flex items-center gap-2'
+				>
+					{isLoading ? <Loader2 className='h-4 w-4 animate-spin' /> : null}
+					Sincronizar con base de datos
+				</Button>
+			</div>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>
+						{isEditing ? 'Editar Artículo' : 'Nuevo Artículo'}
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<form onSubmit={handleSubmit} className='space-y-4'>
+						<div className='space-y-2'>
+							<Label htmlFor='title'>Título</Label>
+							<Input
+								id='title'
+								name='title'
+								value={currentPost.title}
+								onChange={handleInputChange}
+								required
+							/>
+						</div>
+
+						<div className='space-y-2'>
+							<Label htmlFor='description'>Descripción</Label>
+							<Textarea
+								id='description'
+								name='description'
+								value={currentPost.description}
+								onChange={handleInputChange}
+								required
+							/>
+						</div>
+
+						<div className='space-y-2'>
+							<Label htmlFor='content'>Contenido</Label>
+							<Textarea
+								id='content'
+								name='content'
+								value={currentPost.content}
+								onChange={handleInputChange}
+								rows={6}
+								required
+							/>
+						</div>
+
+						<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+							<div className='space-y-2'>
+								<Label htmlFor='category'>Categoría</Label>
+								<Input
+									id='category'
+									name='category'
+									value={currentPost.category}
+									onChange={handleInputChange}
+									required
+								/>
+							</div>
+
+							<div className='space-y-2'>
+								<Label htmlFor='date'>Fecha</Label>
+								<Input
+									id='date'
+									name='date'
+									value={currentPost.date}
+									onChange={handleInputChange}
+									placeholder='Dejar en blanco para fecha actual'
+								/>
+							</div>
+						</div>
+
+						<div className='space-y-2'>
+							<Label>Imagen del artículo</Label>
+							<div className='flex items-center gap-4'>
+								<Button
+									type='button'
+									variant='outline'
+									onClick={() => imageFileRef.current.click()}
+									className='flex items-center gap-2'
+									disabled={isLoading}
+								>
+									{isLoading ? (
+										<Loader2 className='h-4 w-4 animate-spin' />
+									) : (
+										<Upload className='h-4 w-4' />
+									)}
+									Subir imagen
+								</Button>
+								<span className='text-sm text-muted-foreground'>
+									{currentPost.image &&
+									currentPost.image !== '/placeholder.svg?height=200&width=400'
+										? 'Imagen seleccionada'
+										: 'Ninguna imagen seleccionada'}
+								</span>
+								<input
+									type='file'
+									ref={imageFileRef}
+									className='hidden'
+									accept='image/*'
+									onChange={handleImageUpload}
+								/>
+							</div>
+
+							{currentPost.image && (
+								<div className='mt-2 p-2 border rounded-md'>
+									<div className='h-40 flex items-center justify-center'>
+										<img
+											src={currentPost.image || '/placeholder.svg'}
+											alt='Vista previa'
+											className='max-h-full object-contain'
+											onError={(e) => {
+												e.target.onerror = null;
+												e.target.src = '/placeholder.svg?height=200&width=400';
+											}}
+										/>
+									</div>
+								</div>
+							)}
+						</div>
+
+						<div className='flex justify-end space-x-2'>
+							{isEditing && (
+								<Button
+									type='button'
+									variant='outline'
+									onClick={resetForm}
+									disabled={isLoading}
+								>
+									Cancelar
+								</Button>
+							)}
+							<Button type='submit' disabled={isLoading} className='relative'>
+								{isLoading && <Loader2 className='h-4 w-4 animate-spin mr-2' />}
+								{saveStatus === 'success' && (
+									<span className='absolute right-2'>
+										<CheckCircle className='h-4 w-4 text-green-500' />
+									</span>
+								)}
+								{saveStatus === 'error' && (
+									<span className='absolute right-2'>
+										<AlertCircle className='h-4 w-4 text-red-500' />
+									</span>
+								)}
+								{isEditing ? 'Actualizar' : 'Crear'} Artículo
+							</Button>
+						</div>
+					</form>
+				</CardContent>
+			</Card>
+
+			<div className='space-y-4'>
+				<h2 className='text-xl font-bold'>Artículos Publicados</h2>
+
+				{posts.length === 0 ? (
+					<p className='text-muted-foreground'>No hay artículos publicados.</p>
+				) : (
+					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+						{posts.map((post) => (
+							<Card
+								key={post.id}
+								className={
+									post._isTemp ? 'border-dashed border-yellow-500' : ''
+								}
+							>
+								<CardHeader>
+									<CardTitle className='text-lg flex items-center gap-2'>
+										{post.title}
+										{post._isTemp && (
+											<span className='text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full'>
+												Pendiente de sincronización
+											</span>
+										)}
+									</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<p className='text-sm text-muted-foreground mb-2'>
+										{post.date} | {post.category}
+									</p>
+									<p className='line-clamp-2'>{post.description}</p>
+								</CardContent>
+								<CardFooter className='flex justify-end space-x-2'>
+									<Button
+										variant='outline'
+										size='sm'
+										onClick={() => handleEdit(post)}
+										disabled={isLoading}
+									>
+										<Pencil className='h-4 w-4 mr-2' />
+										Editar
+									</Button>
+									<Button
+										variant='destructive'
+										size='sm'
+										onClick={() => handleDelete(post.id)}
+										disabled={isLoading}
+									>
+										<Trash2 className='h-4 w-4 mr-2' />
+										Eliminar
+									</Button>
+								</CardFooter>
+							</Card>
+						))}
+					</div>
+				)}
+			</div>
+		</div>
+	);
 }
 
