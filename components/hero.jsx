@@ -5,6 +5,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { db } from "@/lib/firebase"
+
+// Importar las funciones de Firestore correctamente
 import { doc, getDoc } from "firebase/firestore"
 
 export default function Hero() {
@@ -15,12 +17,14 @@ export default function Hero() {
       "Soy Leandro Chena, consultor comercial y capacitador especializado en transformar equipos de ventas y desarrollar líderes que inspiran resultados extraordinarios.",
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     // Cargar configuración de Firestore
     const loadHeroConfig = async () => {
       try {
         setIsLoading(true)
+        setError(null)
 
         // Primero intenta cargar desde localStorage como fuente de respaldo inmediata
         try {
@@ -40,27 +44,34 @@ export default function Hero() {
 
         // Luego intenta cargar desde Firestore para obtener los datos más actualizados
         try {
-          const docRef = doc(db, "config", "siteConfig")
-          const docSnap = await getDoc(docRef)
+          // Verificar si db es válido y si tenemos las funciones de Firestore
+          if (db && typeof doc === "function" && typeof getDoc === "function") {
+            const docRef = doc(db, "config", "siteConfig")
+            const docSnap = await getDoc(docRef)
 
-          if (docSnap.exists()) {
-            const config = docSnap.data()
-            const newConfig = {
-              image: config.heroImage || heroConfig.image,
-              title: config.content?.hero?.title || heroConfig.title,
-              subtitle: config.content?.hero?.subtitle || heroConfig.subtitle,
+            if (docSnap.exists()) {
+              const config = docSnap.data()
+              const newConfig = {
+                image: config.heroImage || heroConfig.image,
+                title: config.content?.hero?.title || heroConfig.title,
+                subtitle: config.content?.hero?.subtitle || heroConfig.subtitle,
+              }
+              setHeroConfig(newConfig)
+
+              // Si se obtuvo con éxito, actualizar localStorage
+              localStorage.setItem("siteConfig", JSON.stringify(config))
             }
-            setHeroConfig(newConfig)
-
-            // Si se obtuvo con éxito, actualizar localStorage
-            localStorage.setItem("siteConfig", JSON.stringify(config))
+          } else {
+            console.warn("Firebase no está disponible o no está correctamente inicializado")
           }
         } catch (firestoreError) {
           console.error("Error al cargar desde Firestore:", firestoreError)
+          setError(firestoreError.message)
           // No fallar si Firestore no está disponible, ya tenemos datos de localStorage
         }
       } catch (error) {
         console.error("Error general al cargar la configuración del héroe:", error)
+        setError(error.message)
       } finally {
         setIsLoading(false)
       }

@@ -10,6 +10,8 @@ import { toast } from "@/components/ui/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Paintbrush, ImageIcon, FileImage, Type, Upload, Loader2 } from "lucide-react"
 import { db, storage } from "@/lib/firebase"
+
+// Importar las funciones de Firestore y Storage correctamente
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 
@@ -52,6 +54,7 @@ export default function AppearanceManager() {
   })
 
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
   const logoFileRef = useRef(null)
   const heroFileRef = useRef(null)
 
@@ -60,37 +63,60 @@ export default function AppearanceManager() {
     const loadConfig = async () => {
       try {
         setIsLoading(true)
-        const docRef = doc(db, "config", "siteConfig")
-        const docSnap = await getDoc(docRef)
+        setError(null)
 
-        if (docSnap.exists()) {
-          const data = docSnap.data()
+        // Verificar si db es válido y si tenemos las funciones de Firestore
+        if (db && typeof doc === "function" && typeof getDoc === "function") {
+          const docRef = doc(db, "config", "siteConfig")
+          const docSnap = await getDoc(docRef)
 
-          // Asegurarse de que todas las propiedades existan
-          const mergedConfig = {
-            ...siteConfig,
-            ...data,
-            colors: { ...siteConfig.colors, ...(data.colors || {}) },
-            content: {
-              ...siteConfig.content,
-              ...(data.content || {}),
-              hero: { ...siteConfig.content.hero, ...(data.content?.hero || {}) },
-              about: { ...siteConfig.content.about, ...(data.content?.about || {}) },
-              services: { ...siteConfig.content.services, ...(data.content?.services || {}) },
-              cta: { ...siteConfig.content.cta, ...(data.content?.cta || {}) },
-            },
+          if (docSnap.exists()) {
+            const data = docSnap.data()
+
+            // Asegurarse de que todas las propiedades existan
+            const mergedConfig = {
+              ...siteConfig,
+              ...data,
+              colors: { ...siteConfig.colors, ...(data.colors || {}) },
+              content: {
+                ...siteConfig.content,
+                ...(data.content || {}),
+                hero: { ...siteConfig.content.hero, ...(data.content?.hero || {}) },
+                about: { ...siteConfig.content.about, ...(data.content?.about || {}) },
+                services: { ...siteConfig.content.services, ...(data.content?.services || {}) },
+                cta: { ...siteConfig.content.cta, ...(data.content?.cta || {}) },
+              },
+            }
+
+            setSiteConfig(mergedConfig)
+
+            // Aplicar los colores inmediatamente
+            applyColors(mergedConfig.colors)
+          } else {
+            // Si no existe, crear el documento con los valores por defecto
+            try {
+              await setDoc(doc(db, "config", "siteConfig"), siteConfig)
+            } catch (setDocError) {
+              console.error("Error al crear el documento de configuración:", setDocError)
+            }
           }
-
-          setSiteConfig(mergedConfig)
-
-          // Aplicar los colores inmediatamente
-          applyColors(mergedConfig.colors)
         } else {
-          // Si no existe, crear el documento con los valores por defecto
-          await setDoc(doc(db, "config", "siteConfig"), siteConfig)
+          console.warn("Firebase no está disponible o no está correctamente inicializado")
+          // Usar datos locales
+          const savedConfig = localStorage.getItem("siteConfig")
+          if (savedConfig) {
+            try {
+              const parsedConfig = JSON.parse(savedConfig)
+              setSiteConfig(parsedConfig)
+              applyColors(parsedConfig.colors)
+            } catch (parseError) {
+              console.error("Error al analizar la configuración guardada:", parseError)
+            }
+          }
         }
       } catch (error) {
         console.error("Error loading site config:", error)
+        setError(error.message)
         toast({
           title: "Error",
           description: "No se pudo cargar la configuración del sitio.",
@@ -154,30 +180,42 @@ export default function AppearanceManager() {
 
     try {
       setIsLoading(true)
+      setError(null)
 
-      // Subir a Firebase Storage
-      const storageRef = ref(storage, `images/${type}/${file.name}`)
-      await uploadBytes(storageRef, file)
-      const downloadURL = await getDownloadURL(storageRef)
+      // Verificar si storage es válido y si tenemos las funciones de Storage
+      if (
+        storage &&
+        typeof ref === "function" &&
+        typeof uploadBytes === "function" &&
+        typeof getDownloadURL === "function"
+      ) {
+        // Subir a Firebase Storage
+        const storageRef = ref(storage, `images/${type}/${file.name}`)
+        await uploadBytes(storageRef, file)
+        const downloadURL = await getDownloadURL(storageRef)
 
-      if (type === "logo") {
-        setSiteConfig((prev) => ({
-          ...prev,
-          logo: { ...prev.logo, url: downloadURL },
-        }))
-      } else if (type === "hero") {
-        setSiteConfig((prev) => ({
-          ...prev,
-          heroImage: downloadURL,
-        }))
+        if (type === "logo") {
+          setSiteConfig((prev) => ({
+            ...prev,
+            logo: { ...prev.logo, url: downloadURL },
+          }))
+        } else if (type === "hero") {
+          setSiteConfig((prev) => ({
+            ...prev,
+            heroImage: downloadURL,
+          }))
+        }
+
+        toast({
+          title: "Imagen subida",
+          description: "La imagen se ha subido correctamente.",
+        })
+      } else {
+        throw new Error("Firebase Storage no está disponible")
       }
-
-      toast({
-        title: "Imagen subida",
-        description: "La imagen se ha subido correctamente.",
-      })
     } catch (error) {
       console.error("Error uploading image:", error)
+      setError(error.message)
       toast({
         title: "Error",
         description: "No se pudo subir la imagen.",
@@ -198,28 +236,39 @@ export default function AppearanceManager() {
   const handleSave = async () => {
     try {
       setIsLoading(true)
+      setError(null)
 
-      // Guardar en Firestore
-      await setDoc(doc(db, "config", "siteConfig"), siteConfig)
+      // Guardar en Firestore primero
+      if (db && typeof doc === "function" && typeof setDoc === "function") {
+        // Guardar en Firestore
+        await setDoc(doc(db, "config", "siteConfig"), siteConfig)
 
-      // Aplicar los colores inmediatamente
-      applyColors(siteConfig.colors)
+        // Luego guardar en localStorage para acceso rápido
+        localStorage.setItem("siteConfig", JSON.stringify(siteConfig))
 
-      // Guardar también en localStorage para acceso rápido
-      localStorage.setItem("siteConfig", JSON.stringify(siteConfig))
+        // Aplicar los colores inmediatamente
+        applyColors(siteConfig.colors)
 
-      // Disparar un evento para que otros componentes sepan que la configuración ha cambiado
-      window.dispatchEvent(new Event("siteConfigUpdated"))
+        // Disparar un evento para que otros componentes sepan que la configuración ha cambiado
+        window.dispatchEvent(new Event("siteConfigUpdated"))
 
-      toast({
-        title: "Configuración guardada",
-        description: "Los cambios han sido aplicados correctamente.",
-      })
+        toast({
+          title: "Configuración guardada",
+          description: "Los cambios han sido aplicados correctamente y serán visibles para todos los usuarios.",
+        })
+      } else {
+        throw new Error("Firebase no está disponible")
+      }
     } catch (error) {
       console.error("Error saving site config:", error)
+      setError(error.message)
+
+      // Intentar guardar en localStorage como respaldo
+      localStorage.setItem("siteConfig", JSON.stringify(siteConfig))
+
       toast({
         title: "Error",
-        description: "No se pudo guardar la configuración.",
+        description: "No se pudo guardar la configuración en Firestore. Los cambios solo serán visibles localmente.",
         variant: "destructive",
       })
     } finally {
@@ -267,31 +316,43 @@ export default function AppearanceManager() {
 
     try {
       setIsLoading(true)
+      setError(null)
 
       // Actualizar estado
       setSiteConfig(defaultConfig)
 
-      // Guardar en Firestore
-      await setDoc(doc(db, "config", "siteConfig"), defaultConfig)
+      // Guardar en Firestore primero
+      if (db && typeof doc === "function" && typeof setDoc === "function") {
+        // Guardar en Firestore
+        await setDoc(doc(db, "config", "siteConfig"), defaultConfig)
 
-      // Guardar en localStorage
-      localStorage.setItem("siteConfig", JSON.stringify(defaultConfig))
+        // Luego guardar en localStorage
+        localStorage.setItem("siteConfig", JSON.stringify(defaultConfig))
 
-      // Restablecer los colores
-      applyColors(defaultConfig.colors)
+        // Restablecer los colores
+        applyColors(defaultConfig.colors)
 
-      // Disparar evento
-      window.dispatchEvent(new Event("siteConfigUpdated"))
+        // Disparar evento
+        window.dispatchEvent(new Event("siteConfigUpdated"))
 
-      toast({
-        title: "Configuración restablecida",
-        description: "Se han restaurado los valores predeterminados.",
-      })
+        toast({
+          title: "Configuración restablecida",
+          description: "Se han restaurado los valores predeterminados para todos los usuarios.",
+        })
+      } else {
+        throw new Error("Firebase no está disponible")
+      }
     } catch (error) {
       console.error("Error resetting site config:", error)
+      setError(error.message)
+
+      // Intentar guardar en localStorage como respaldo
+      localStorage.setItem("siteConfig", JSON.stringify(defaultConfig))
+
       toast({
         title: "Error",
-        description: "No se pudo restablecer la configuración.",
+        description:
+          "No se pudo restablecer la configuración en Firestore. Los cambios solo serán visibles localmente.",
         variant: "destructive",
       })
     } finally {
@@ -310,6 +371,16 @@ export default function AppearanceManager() {
 
   return (
     <div className="space-y-8">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{error}</span>
+          <p className="text-sm mt-2">
+            La aplicación está funcionando en modo offline. Los cambios se guardarán localmente.
+          </p>
+        </div>
+      )}
+
       <Tabs defaultValue="general">
         <TabsList className="mb-6">
           <TabsTrigger value="general">General</TabsTrigger>

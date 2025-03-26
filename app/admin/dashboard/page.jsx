@@ -9,6 +9,10 @@ import BlogManager from "@/components/admin/blog-manager"
 import EventsManager from "@/components/admin/events-manager"
 import ResourcesManager from "@/components/admin/resources-manager"
 import AppearanceManager from "@/components/admin/appearance-manager"
+// Añadir la importación del componente UrlShortener
+import UrlShortener from "@/components/admin/url-shortener"
+import FileManager from "@/components/admin/file-manager.jsx"
+import FirebaseStatus from "@/components/admin/firebase-status"
 
 export default function AdminDashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -40,12 +44,18 @@ export default function AdminDashboardPage() {
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold mb-6">Panel de Administración</h1>
 
+        {/* Componente de estado de Firebase */}
+        <FirebaseStatus />
+
         <Tabs defaultValue="blog">
           <TabsList className="mb-6">
             <TabsTrigger value="blog">Blog</TabsTrigger>
             <TabsTrigger value="events">Eventos</TabsTrigger>
             <TabsTrigger value="resources">Recursos</TabsTrigger>
             <TabsTrigger value="appearance">Apariencia</TabsTrigger>
+            <TabsTrigger value="urls">Acortador URL</TabsTrigger>
+                        <TabsTrigger value="manager">File Manager</TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="blog">
@@ -62,6 +72,14 @@ export default function AdminDashboardPage() {
 
           <TabsContent value="appearance">
             <AppearanceManager />
+          </TabsContent>
+
+          <TabsContent value="urls">
+            <UrlShortener />
+          </TabsContent>
+
+          <TabsContent value="manager">
+            <FileManager />
           </TabsContent>
         </Tabs>
       </div>
