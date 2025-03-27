@@ -1,116 +1,105 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Menu, X } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { ModeToggle } from "@/components/mode-toggle"
+import { Menu, X } from "lucide-react"
 
-const navigation = [
-  { name: "Inicio", href: "/" },
-  { name: "Sobre Mí", href: "/sobre-mi" },
-  { name: "Servicios", href: "/servicios" },
-  { name: "Recursos", href: "/recursos" },
-  { name: "Blog", href: "/blog" },
-  { name: "Eventos", href: "/eventos" },
-  { name: "Contacto", href: "/contacto" },
-]
-
-export default function MobileMenu({ logo }) {
+export default function MobileMenu({ logoSrc }) {
   const [isOpen, setIsOpen] = useState(false)
-  const pathname = usePathname()
 
-  // Cerrar el menú cuando cambia la ruta
-  useEffect(() => {
-    setIsOpen(false)
-  }, [pathname])
-
-  // Bloquear scroll cuando el menú está abierto
-  useEffect(() => {
-    if (isOpen) {
-      document.body.classList.add("overflow-hidden")
+  const toggleMenu = () => {
+    setIsOpen(!isOpen)
+    // Bloquear el scroll cuando el menú está abierto
+    if (!isOpen) {
+      document.body.style.overflow = "hidden"
     } else {
-      document.body.classList.remove("overflow-hidden")
+      document.body.style.overflow = "auto"
     }
+  }
 
-    return () => {
-      document.body.classList.remove("overflow-hidden")
-    }
-  }, [isOpen])
+  const closeMenu = () => {
+    setIsOpen(false)
+    document.body.style.overflow = "auto"
+  }
 
   return (
-    <div className="lg:hidden">
-      {/* Botón para abrir el menú */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="inline-flex items-center justify-center p-2 rounded-md text-foreground"
-        aria-expanded={isOpen}
-      >
-        <span className="sr-only">Abrir menú</span>
+    <>
+      <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Menu">
         <Menu className="h-6 w-6" />
-      </button>
+      </Button>
 
-      {/* Menú móvil */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
-          <div className="p-4">
-            {/* Cabecera del menú */}
-            <div className="flex items-center justify-between">
-              <Link href="/" onClick={() => setIsOpen(false)}>
-                <span className="sr-only">{logo?.alt || "Leandro Chena"}</span>
-                {logo?.url ? (
-                  <img src={logo.url || "/placeholder.svg"} alt={logo.alt || "Leandro Chena"} className="h-8 w-auto" />
-                ) : (
-                  <span className="text-xl font-bold">{logo?.alt || "Leandro Chena"}</span>
-                )}
-              </Link>
+      {/* Overlay */}
+      {isOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={closeMenu}></div>}
 
-              {/* Botón para cerrar */}
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-foreground"
-              >
-                <span className="sr-only">Cerrar menú</span>
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* Enlaces de navegación */}
-            <div className="mt-8">
-              <div className="grid gap-4 py-6">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`block px-3 py-2 text-base font-medium rounded-md ${
-                      pathname === item.href ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"
-                    }`}
-                    onClick={() => setIsOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Acciones */}
-            <div className="mt-6 pt-6 border-t border-border">
-              <div className="flex flex-col space-y-4">
-                <ModeToggle />
-                <Button asChild>
-                  <Link href="/contacto" onClick={() => setIsOpen(false)}>
-                    Contactar
-                  </Link>
-                </Button>
-              </div>
-            </div>
+      {/* Mobile Menu Panel */}
+      <div
+        className={`fixed top-0 right-0 h-full w-4/5 max-w-sm bg-white dark:bg-gray-900 z-50 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        } overflow-y-auto`}
+      >
+        <div className="p-5">
+          <div className="flex justify-between items-center mb-8">
+            <Link href="/" onClick={closeMenu}>
+              <Image
+                src={logoSrc || "/placeholder.svg"}
+                alt="Leandro Chena"
+                width={120}
+                height={30}
+                className="h-7 w-auto"
+              />
+            </Link>
+            <Button variant="ghost" size="icon" onClick={closeMenu} aria-label="Cerrar menú">
+              <X className="h-6 w-6" />
+            </Button>
           </div>
+
+          <nav className="flex flex-col space-y-4">
+            <Link
+              href="/sobre-mi"
+              className="px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={closeMenu}
+            >
+              Sobre Mí
+            </Link>
+            <Link
+              href="/servicios"
+              className="px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={closeMenu}
+            >
+              Servicios
+            </Link>
+            <Link
+              href="/blog"
+              className="px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={closeMenu}
+            >
+              Blog
+            </Link>
+            <Link
+              href="/recursos"
+              className="px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={closeMenu}
+            >
+              Recursos
+            </Link>
+            <Link
+              href="/eventos"
+              className="px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={closeMenu}
+            >
+              Eventos
+            </Link>
+            <Link href="/contacto" onClick={closeMenu}>
+              <Button variant="default" className="w-full">
+                Contacto
+              </Button>
+            </Link>
+          </nav>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   )
 }
 

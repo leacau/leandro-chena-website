@@ -2,73 +2,64 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { db } from "@/lib/firebase"
-import { collection, getDocs } from "firebase/firestore"
-import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 
 export default function BlogPage() {
   const [posts, setPosts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const loadPosts = async () => {
       try {
         setIsLoading(true)
+        setError(null)
 
         // Intentar obtener datos de caché primero
         const cachedPosts = localStorage.getItem("cachedBlogPosts")
         if (cachedPosts) {
           setPosts(JSON.parse(cachedPosts))
-          // Reducimos el tiempo de carga si hay datos en caché
           setIsLoading(false)
         }
 
-        // Establecer un timeout para la consulta de Firestore
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Tiempo de espera excedido")), 5000),
-        )
+        // Importar Firebase de manera dinámica
+        const { db } = await import("@/lib/firebase")
+        const { collection, getDocs, query, orderBy } = await import("firebase/firestore")
 
-        // Realizar la consulta a Firestore con límite de tiempo
-        const queryPromise = async () => {
-          try {
-            const querySnapshot = await getDocs(collection(db, "blogPosts"))
-            const loadedPosts = []
-
-            querySnapshot.forEach((doc) => {
-              loadedPosts.push({
-                id: doc.id,
-                ...doc.data(),
-              })
-            })
-
-            // Actualizar estados y caché solo si se obtuvieron datos
-            if (loadedPosts.length > 0) {
-              setPosts(loadedPosts)
-              localStorage.setItem("cachedBlogPosts", JSON.stringify(loadedPosts))
-            }
-
-            return true
-          } catch (err) {
-            console.error("Error en la consulta a Firestore:", err)
-            return false
+        // Consultar Firestore con un timeout
+        const timeoutId = setTimeout(() => {
+          if (isLoading && !error) {
+            setError("La consulta está tomando demasiado tiempo. Usando datos en caché si están disponibles.")
           }
-        }
+        }, 5000)
 
-        // Ejecutar la consulta con timeout
         try {
-          await Promise.race([queryPromise(), timeoutPromise])
-        } catch (raceError) {
-          console.log("Se usaron datos en caché debido a timeout o error:", raceError)
-          // Si ya teníamos datos en caché, no mostramos error al usuario
-          if (!cachedPosts) {
-            console.error("No hay datos disponibles:", raceError)
+          const postsQuery = query(collection(db, "blogPosts"), orderBy("createdAt", "desc"))
+          const querySnapshot = await getDocs(postsQuery)
+          const loadedPosts = []
+
+          querySnapshot.forEach((doc) => {
+            loadedPosts.push({
+              id: doc.id,
+              ...doc.data(),
+            })
+          })
+
+          clearTimeout(timeoutId)
+
+          if (loadedPosts.length > 0) {
+            setPosts(loadedPosts)
+            localStorage.setItem("cachedBlogPosts", JSON.stringify(loadedPosts))
           }
+        } catch (firestoreError) {
+          console.error("Error en la consulta a Firestore:", firestoreError)
+          setError("Error al cargar los posts. Usando datos en caché si están disponibles.")
         }
       } catch (error) {
-        console.error("Error loading blog posts:", error)
+        console.error("Error general:", error)
+        setError("Error al cargar los posts. Usando datos en caché si están disponibles.")
       } finally {
         setIsLoading(false)
       }
@@ -77,7 +68,7 @@ export default function BlogPage() {
     loadPosts()
   }, [])
 
-  if (isLoading) {
+  if (isLoading && posts.length === 0) {
     return (
       <div className="container mx-auto py-12 flex justify-center items-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -89,6 +80,10 @@ export default function BlogPage() {
   return (
     <div className="container mx-auto py-12 px-4">
       <h1 className="text-4xl font-bold mb-8">Blog</h1>
+
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6">{error}</div>
+      )}
 
       {posts.length === 0 ? (
         <div className="text-center py-12">
@@ -103,11 +98,10 @@ export default function BlogPage() {
           {posts.map((post) => (
             <Card key={post.id} className="overflow-hidden flex flex-col">
               <div className="h-48 relative">
-                <Image
+                <img
                   src={post.image || "/placeholder.svg?height=200&width=400"}
                   alt={post.title}
-                  fill
-                  className="object-cover"
+                  className="object-cover w-full h-full"
                   onError={(e) => {
                     e.target.onerror = null
                     e.target.src = "/placeholder.svg?height=200&width=400"
@@ -117,16 +111,16 @@ export default function BlogPage() {
               <CardHeader>
                 <CardTitle className="line-clamp-2">{post.title}</CardTitle>
                 <CardDescription>
-                  {post.date} | {post.category}
+                  {post.date} | {post.category || "Sin categoría"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="line-clamp-3">{post.description}</p>
               </CardContent>
               <CardFooter className="mt-auto">
-                <Link href={`/blog/${post.slug}`} className="text-primary hover:underline">
-                  Leer más
-                </Link>
+                <Button variant="link" className="p-0" asChild>
+                  <Link href={`/blog/${post.slug || post.id}`}>Leer más</Link>
+                </Button>
               </CardFooter>
             </Card>
           ))}

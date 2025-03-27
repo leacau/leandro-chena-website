@@ -120,7 +120,7 @@ export default function FileManager() {
 
       toast({
         title: "¡Archivo subido!",
-        description: `El archivo se ha subido correctamente. URL de descarga: ${baseUrl}${slug}`,
+        description: `El archivo se ha subido correctamente.`,
       })
 
       // Limpiar formulario y recargar lista

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin } from "lucide-react"
@@ -89,8 +90,13 @@ export default function EventosPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter>
-                <Button>Inscribirme</Button>
+              <CardFooter className="flex flex-col sm:flex-row gap-2">
+                <Button asChild className="w-full sm:w-auto">
+                  <Link href={`/eventos/${event.id}`}>Ver detalles</Link>
+                </Button>
+                <Button variant="outline" className="w-full sm:w-auto">
+                  Inscribirme
+                </Button>
               </CardFooter>
             </Card>
           ))}

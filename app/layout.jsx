@@ -16,38 +16,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <head>
-        <style>{`
-          :root {
-            --primary-color: #3b82f6;
-            --secondary-color: #f3f4f6;
-            --text-color: #111827;
-            --background-color: #ffffff;
-          }
-          
-          /* Aplicar colores personalizados a elementos específicos */
-          .btn-primary {
-            background-color: var(--primary-color) !important;
-          }
-          
-          .btn-secondary {
-            background-color: var(--secondary-color) !important;
-          }
-          
-          .custom-text {
-            color: var(--text-color) !important;
-          }
-          
-          .custom-bg {
-            background-color: var(--background-color) !important;
-          }
-        `}</style>
-      </head>
-      <body className={`${inter.className} overflow-x-hidden`}>
+      <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <div className="flex min-h-screen flex-col overflow-x-hidden">
+          <div className="flex min-h-screen flex-col overflow-x-hidden w-full">
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 w-full">{children}</main>
             <Footer />
           </div>
         </ThemeProvider>

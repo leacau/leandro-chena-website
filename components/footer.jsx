@@ -1,145 +1,145 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
-import { db } from "@/lib/firebase"
-import { doc, getDoc } from "firebase/firestore"
+import Image from "next/image"
+import { useTheme } from "next-themes"
 
 export default function Footer() {
-  const pathname = usePathname()
-  const [siteConfig, setSiteConfig] = useState({
-    logo: {
-      url: "",
-      alt: "Leandro Chena",
-    },
-  })
-
-  useEffect(() => {
-    // Cargar configuración de Firestore primero, luego localStorage como respaldo
-    const loadSiteConfig = async () => {
-      try {
-        // Intentar cargar desde Firestore primero
-        if (db) {
-          const docRef = doc(db, "config", "siteConfig")
-          const docSnap = await getDoc(docRef)
-
-          if (docSnap.exists()) {
-            const firestoreConfig = docSnap.data()
-            setSiteConfig(firestoreConfig)
-            return
-          }
-        }
-
-        // Si no hay datos en Firestore o hay un error, usar localStorage
-        const savedConfig = localStorage.getItem("siteConfig")
-        if (savedConfig) {
-          setSiteConfig(JSON.parse(savedConfig))
-        }
-      } catch (error) {
-        console.error("Error al cargar la configuración:", error)
-        // Intentar usar localStorage como respaldo
-        try {
-          const savedConfig = localStorage.getItem("siteConfig")
-          if (savedConfig) {
-            setSiteConfig(JSON.parse(savedConfig))
-          }
-        } catch (localError) {
-          console.error("Error al cargar la configuración local:", localError)
-        }
-      }
-    }
-
-    loadSiteConfig()
-
-    // Escuchar cambios en localStorage
-    const handleStorageChange = () => {
-      try {
-        const savedConfig = localStorage.getItem("siteConfig")
-        if (savedConfig) {
-          setSiteConfig(JSON.parse(savedConfig))
-        }
-      } catch (error) {
-        console.error("Error al procesar cambios en localStorage:", error)
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    // También escuchar el evento personalizado para cambios de configuración
-    window.addEventListener("siteConfigUpdated", handleStorageChange)
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange)
-      window.removeEventListener("siteConfigUpdated", handleStorageChange)
-    }
-  }, [])
-
-  // Verificar si estamos en una página de administración
-  const isAdminPage = pathname?.startsWith("/admin")
-  if (isAdminPage) return null
+  const { theme } = useTheme()
+  const logoSrc = theme === "dark" ? "/images/logo-white.png" : "/images/logo.png"
 
   return (
-    <footer className="bg-background border-t">
-      <div className="mx-auto max-w-7xl px-6 py-12 md:flex md:items-center md:justify-between lg:px-8">
-        <div className="flex justify-center space-x-6 md:order-2">
-          <Link href="/" className={pathname === "/" ? "text-primary" : "text-foreground/80 hover:text-foreground"}>
-            Inicio
-          </Link>
-          <Link
-            href="/sobre-mi"
-            className={pathname === "/sobre-mi" ? "text-primary" : "text-foreground/80 hover:text-foreground"}
-          >
-            Sobre Mí
-          </Link>
-          <Link
-            href="/servicios"
-            className={pathname === "/servicios" ? "text-primary" : "text-foreground/80 hover:text-foreground"}
-          >
-            Servicios
-          </Link>
-          <Link
-            href="/recursos"
-            className={pathname === "/recursos" ? "text-primary" : "text-foreground/80 hover:text-foreground"}
-          >
-            Recursos
-          </Link>
-          <Link
-            href="/blog"
-            className={pathname === "/blog" ? "text-primary" : "text-foreground/80 hover:text-foreground"}
-          >
-            Blog
-          </Link>
-          <Link
-            href="/eventos"
-            className={pathname === "/eventos" ? "text-primary" : "text-foreground/80 hover:text-foreground"}
-          >
-            Eventos
-          </Link>
-          <Link
-            href="/contacto"
-            className={pathname === "/contacto" ? "text-primary" : "text-foreground/80 hover:text-foreground"}
-          >
-            Contacto
-          </Link>
-        </div>
-        <div className="mt-8 md:order-1 md:mt-0">
-          <Link href="/" className="flex items-center justify-center">
-            {siteConfig.logo?.url ? (
-              <img
-                src={siteConfig.logo.url || "/placeholder.svg"}
-                alt={siteConfig.logo.alt || "Leandro Chena"}
-                className="h-8 w-auto mr-2"
-                onError={(e) => {
-                  e.target.onerror = null
-                  e.target.style.display = "none"
-                }}
+    <footer className="bg-gray-50 dark:bg-gray-900 w-full overflow-hidden">
+      <div className="container mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="md:col-span-1">
+            <Link href="/">
+              <Image
+                src={logoSrc || "/placeholder.svg"}
+                alt="Leandro Chena"
+                width={150}
+                height={40}
+                className="h-8 w-auto mb-4"
               />
-            ) : null}
-            <p className="text-center text-xs leading-5 text-foreground/80">
-              &copy; {new Date().getFullYear()} {siteConfig.logo?.alt || "Leandro Chena"}. Todos los derechos
-              reservados.
+            </Link>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Consultor comercial y capacitador especializado en transformar equipos de ventas y desarrollar líderes.
             </p>
-          </Link>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+              Servicios
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/servicios/capacitaciones"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  Capacitaciones
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/servicios/consultoria"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  Consultoría
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/servicios/charlas"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  Charlas Motivacionales
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/servicios/mentorias"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  Mentorías 1:1
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+              Recursos
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/blog"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/recursos"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  Recursos Gratuitos
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/eventos"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  Eventos
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+              Contacto
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/contacto"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  Contacto
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="https://www.linkedin.com/in/leandro-chena/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  LinkedIn
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.instagram.com/leandro.chena/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                >
+                  Instagram
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+            &copy; {new Date().getFullYear()} Leandro Chena. Todos los derechos reservados.
+          </p>
         </div>
       </div>
     </footer>

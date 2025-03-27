@@ -1,716 +1,467 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
+import { db, storage } from "@/lib/firebase"
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  deleteDoc,
+  updateDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+} from "firebase/firestore"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { toast } from "@/components/ui/use-toast"
-import { Pencil, Trash2, Upload, Loader2, AlertCircle, CheckCircle } from "lucide-react"
-import { db, storage } from "@/lib/firebase"
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, writeBatch } from "firebase/firestore"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/components/ui/use-toast"
+import { Pencil, Trash, Eye, ImageIcon, Loader2 } from "lucide-react"
+import Link from "next/link"
 
 export default function BlogManager() {
   const [posts, setPosts] = useState([])
-  const [isEditing, setIsEditing] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [saveStatus, setSaveStatus] = useState(null) // null, 'saving', 'success', 'error'
-  const [currentPost, setCurrentPost] = useState({
-    id: null,
-    title: "",
-    description: "",
-    content: "",
-    date: "",
-    category: "",
-    image: "/placeholder.svg?height=200&width=400",
-    slug: "",
-  })
+  const [loading, setLoading] = useState(true)
+  const [title, setTitle] = useState("")
+  const [slug, setSlug] = useState("")
+  const [content, setContent] = useState("")
+  const [description, setDescription] = useState("")
+  const [category, setCategory] = useState("")
+  const [author, setAuthor] = useState("")
+  const [image, setImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+  const [editingPost, setEditingPost] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const { toast } = useToast()
 
-  const imageFileRef = useRef(null)
-
+  // Cargar posts al iniciar
   useEffect(() => {
-    // Cargar posts de Firestore
-    const loadPosts = async () => {
-      try {
-        setIsLoading(true)
-
-        // Intentar cargar desde localStorage primero para mostrar algo rápido
-        try {
-          const cachedPosts = localStorage.getItem("cachedBlogPosts")
-          if (cachedPosts) {
-            const parsed = JSON.parse(cachedPosts)
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setPosts(parsed)
-            }
-          }
-        } catch (cacheError) {
-          console.error("Error loading from cache:", cacheError)
-        }
-
-        // Luego intentar cargar desde Firestore
-        try {
-          const querySnapshot = await getDocs(collection(db, "blogPosts"))
-          const loadedPosts = []
-
-          querySnapshot.forEach((doc) => {
-            loadedPosts.push({
-              id: doc.id,
-              ...doc.data(),
-            })
-          })
-
-          if (loadedPosts.length > 0) {
-            setPosts(loadedPosts)
-            // Actualizar caché
-            localStorage.setItem("cachedBlogPosts", JSON.stringify(loadedPosts))
-          } else {
-            // Datos iniciales de ejemplo
-            const initialPosts = [
-              {
-                title: "Cómo desarrollar un equipo comercial de alto rendimiento",
-                description:
-                  "Estrategias probadas para formar y liderar equipos de ventas que superan consistentemente sus objetivos.",
-                content: "Contenido completo del artículo...",
-                date: "10 de marzo de 2023",
-                category: "Liderazgo",
-                image: "/placeholder.svg?height=200&width=400",
-                slug: "como-desarrollar-equipo-comercial-alto-rendimiento",
-              },
-              {
-                title: "5 errores comunes en el proceso de venta y cómo evitarlos",
-                description:
-                  "Identifica y corrige los errores más frecuentes que cometen los vendedores y que afectan negativamente los resultados.",
-                content: "Contenido completo del artículo...",
-                date: "25 de febrero de 2023",
-                category: "Ventas",
-                image: "/placeholder.svg?height=200&width=400",
-                slug: "5-errores-comunes-proceso-venta",
-              },
-            ]
-
-            // Guardar posts iniciales en Firestore
-            for (const post of initialPosts) {
-              await addDoc(collection(db, "blogPosts"), post)
-            }
-
-            // Cargar nuevamente los posts
-            const newQuerySnapshot = await getDocs(collection(db, "blogPosts"))
-            const newLoadedPosts = []
-
-            newQuerySnapshot.forEach((doc) => {
-              newLoadedPosts.push({
-                id: doc.id,
-                ...doc.data(),
-              })
-            })
-
-            setPosts(newLoadedPosts)
-            localStorage.setItem("cachedBlogPosts", JSON.stringify(newLoadedPosts))
-          }
-        } catch (firestoreError) {
-          console.error("Error loading from Firestore:", firestoreError)
-          toast({
-            title: "Error de conexión",
-            description:
-              "No se pudieron cargar los artículos desde la base de datos. Se mostrarán datos en caché si están disponibles.",
-            variant: "destructive",
-          })
-        }
-      } catch (error) {
-        console.error("General error loading blog posts:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     loadPosts()
   }, [])
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setCurrentPost({
-      ...currentPost,
-      [name]: value,
-    })
-  }
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-
-    // Validar tipo de archivo
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Por favor, selecciona un archivo de imagen válido.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Validar tamaño (máximo 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "La imagen es demasiado grande. El tamaño máximo es 2MB.",
-        variant: "destructive",
-      })
-      return
-    }
-
+  const loadPosts = async () => {
     try {
-      setIsLoading(true)
-
-      // Subir a Firebase Storage
-      const storageRef = ref(storage, `blog/${file.name}`)
-      await uploadBytes(storageRef, file)
-      const downloadURL = await getDownloadURL(storageRef)
-
-      setCurrentPost((prev) => ({
-        ...prev,
-        image: downloadURL,
+      setLoading(true)
+      const postsQuery = query(collection(db, "blogPosts"), orderBy("createdAt", "desc"))
+      const querySnapshot = await getDocs(postsQuery)
+      const postsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
       }))
-
-      toast({
-        title: "Imagen subida",
-        description: "La imagen se ha subido correctamente.",
-      })
+      setPosts(postsData)
     } catch (error) {
-      console.error("Error uploading image:", error)
+      console.error("Error al cargar los posts:", error)
       toast({
         title: "Error",
-        description: "No se pudo subir la imagen.",
+        description: "No se pudieron cargar los posts del blog.",
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  // Función para guardar directamente en localStorage
-  const saveToLocalStorage = (newPosts) => {
-    try {
-      localStorage.setItem("cachedBlogPosts", JSON.stringify(newPosts))
-      console.log("Saved to localStorage successfully")
-      return true
-    } catch (error) {
-      console.error("Error saving to localStorage:", error)
-      return false
-    }
-  }
-
-  // Función para guardar en Firestore con reintentos
-  const saveToFirestore = async (postData, isUpdate = false) => {
-    let retryCount = 0
-    const maxRetries = 3
-    let success = false
-    let docRef = null
-    let error = null
-
-    while (retryCount < maxRetries && !success) {
-      try {
-        if (isUpdate) {
-          // Actualizar documento existente
-          const postRef = doc(db, "blogPosts", postData.id)
-          await updateDoc(postRef, postData)
-          success = true
-        } else {
-          // Crear nuevo documento
-          const dataToSave = { ...postData }
-          delete dataToSave.id // Eliminar id nulo antes de guardar
-
-          // Intentar usar setDoc con ID generado manualmente si addDoc falla
-          if (retryCount > 0) {
-            const newId = `post_${Date.now()}_${Math.floor(Math.random() * 1000)}`
-            const postRef = doc(db, "blogPosts", newId)
-            await setDoc(postRef, dataToSave)
-            docRef = { id: newId }
-          } else {
-            docRef = await addDoc(collection(db, "blogPosts"), dataToSave)
-          }
-          success = true
-        }
-      } catch (err) {
-        error = err
-        console.error(`Error en intento ${retryCount + 1}:`, err)
-        retryCount++
-
-        // Esperar antes de reintentar (backoff exponencial)
-        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, retryCount)))
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setImage(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result)
       }
+      reader.readAsDataURL(file)
     }
+  }
 
-    return { success, docRef, error }
+  const generateSlug = (text) => {
+    return text
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w-]+/g, "")
+      .replace(/--+/g, "-")
+  }
+
+  const handleTitleChange = (e) => {
+    const newTitle = e.target.value
+    setTitle(newTitle)
+    if (!editingPost || !editingPost.slug) {
+      setSlug(generateSlug(newTitle))
+    }
+  }
+
+  const resetForm = () => {
+    setTitle("")
+    setSlug("")
+    setContent("")
+    setDescription("")
+    setCategory("")
+    setAuthor("")
+    setImage(null)
+    setImagePreview("")
+    setImageUrl("")
+    setEditingPost(null)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // Validar que todos los campos requeridos estén presentes
-    if (!currentPost.title.trim() || !currentPost.description.trim() || !currentPost.content.trim()) {
+    if (!title || !slug || !content) {
       toast({
-        title: "Error",
-        description: "Por favor completa todos los campos requeridos",
+        title: "Campos requeridos",
+        description: "Por favor completa al menos título, slug y contenido.",
         variant: "destructive",
       })
       return
     }
 
     try {
-      setIsLoading(true)
-      setSaveStatus("saving")
+      setSubmitting(true)
+      let finalImageUrl = imageUrl
 
-      // Generar slug si no existe
-      let slug = currentPost.slug
-      if (!slug) {
-        slug = currentPost.title
-          .toLowerCase()
-          .replace(/[^\w\s]/gi, "")
-          .replace(/\s+/g, "-")
+      // Si hay una nueva imagen, subirla a Storage
+      if (image) {
+        const storageRef = ref(storage, `blog/${slug}-${Date.now()}`)
+        await uploadBytes(storageRef, image)
+        finalImageUrl = await getDownloadURL(storageRef)
       }
 
-      // Generar fecha actual si no existe
-      let date = currentPost.date
-      if (!date) {
-        const now = new Date()
-        date = `${now.getDate()} de ${getMonthName(now.getMonth())} de ${now.getFullYear()}`
-      }
-
-      const postToSave = {
-        ...currentPost,
+      const postData = {
+        title,
         slug,
-        date,
+        content,
+        description,
+        category,
+        author,
+        date: new Date().toLocaleDateString("es-AR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        updatedAt: serverTimestamp(),
       }
 
-      // Primero actualizar la UI optimistamente
-      let updatedPosts
-
-      if (isEditing) {
-        // Actualizar post existente en la UI
-        updatedPosts = posts.map((post) => (post.id === currentPost.id ? { ...postToSave } : post))
-      } else {
-        // Crear un ID temporal para el nuevo post
-        const tempId = `temp_${Date.now()}`
-        const newPost = {
-          ...postToSave,
-          id: tempId,
-          _isTemp: true, // Marcar como temporal
-        }
-        updatedPosts = [...posts, newPost]
+      if (finalImageUrl) {
+        postData.image = finalImageUrl
       }
 
-      // Actualizar la UI inmediatamente
-      setPosts(updatedPosts)
-
-      // Guardar en localStorage como respaldo
-      saveToLocalStorage(updatedPosts)
-
-      // Intentar guardar en Firestore
-      const { success, docRef, error } = await saveToFirestore(postToSave, isEditing)
-
-      if (success) {
-        // Si fue exitoso, actualizar la UI con el ID real si es un nuevo post
-        if (!isEditing && docRef) {
-          const finalPosts = updatedPosts.map((post) =>
-            post._isTemp ? { ...post, id: docRef.id, _isTemp: undefined } : post,
-          )
-          setPosts(finalPosts)
-          saveToLocalStorage(finalPosts)
-        }
-
-        setSaveStatus("success")
+      if (editingPost) {
+        // Actualizar post existente
+        await updateDoc(doc(db, "blogPosts", editingPost.id), postData)
         toast({
-          title: isEditing ? "Artículo actualizado" : "Artículo creado",
-          description: "Los cambios se han guardado correctamente",
+          title: "Post actualizado",
+          description: "El post ha sido actualizado correctamente.",
         })
-
-        // Resetear formulario
-        resetForm()
       } else {
-        // Si falló, mantener los datos en localStorage pero mostrar error
-        setSaveStatus("error")
-        throw error || new Error("Error desconocido al guardar")
+        // Crear nuevo post
+        postData.createdAt = serverTimestamp()
+        await addDoc(collection(db, "blogPosts"), postData)
+        toast({
+          title: "Post creado",
+          description: "El post ha sido creado correctamente.",
+        })
       }
+
+      resetForm()
+      loadPosts()
     } catch (error) {
-      console.error("Error saving blog post:", error)
-      setSaveStatus("error")
+      console.error("Error al guardar el post:", error)
       toast({
-        title: "Error al guardar",
-        description:
-          "Los cambios se han guardado localmente, pero hubo un problema al sincronizar con la base de datos. Se intentará sincronizar más tarde.",
+        title: "Error",
+        description: "No se pudo guardar el post. Inténtalo de nuevo.",
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
-      // Resetear el estado de guardado después de un tiempo
-      setTimeout(() => setSaveStatus(null), 3000)
+      setSubmitting(false)
     }
   }
 
   const handleEdit = (post) => {
-    setCurrentPost(post)
-    setIsEditing(true)
+    setEditingPost(post)
+    setTitle(post.title || "")
+    setSlug(post.slug || "")
+    setContent(post.content || "")
+    setDescription(post.description || "")
+    setCategory(post.category || "")
+    setAuthor(post.author || "")
+    setImageUrl(post.image || "")
+    setImagePreview(post.image || "")
+    setImage(null)
   }
 
-  const handleDelete = async (id) => {
-    if (window.confirm("¿Está seguro que desea eliminar este post?")) {
-      try {
-        setIsLoading(true)
-
-        // Actualizar UI optimistamente
-        const updatedPosts = posts.filter((post) => post.id !== id)
-        setPosts(updatedPosts)
-        saveToLocalStorage(updatedPosts)
-
-        // Intentar eliminar de Firestore
-        try {
-          await deleteDoc(doc(db, "blogPosts", id))
-          toast({ title: "Artículo eliminado correctamente" })
-        } catch (error) {
-          console.error("Error deleting from Firestore:", error)
-          toast({
-            title: "Error de sincronización",
-            description:
-              "El artículo se ha eliminado localmente, pero hubo un problema al sincronizar con la base de datos.",
-            variant: "destructive",
-          })
-        }
-      } catch (error) {
-        console.error("General error deleting blog post:", error)
-      } finally {
-        setIsLoading(false)
-      }
+  const handleDelete = async (post) => {
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar el post "${post.title}"?`)) {
+      return
     }
-  }
 
-  const resetForm = () => {
-    setCurrentPost({
-      id: null,
-      title: "",
-      description: "",
-      content: "",
-      date: "",
-      category: "",
-      image: "/placeholder.svg?height=200&width=400",
-      slug: "",
-    })
-    setIsEditing(false)
-  }
-
-  const getMonthName = (month) => {
-    const months = [
-      "enero",
-      "febrero",
-      "marzo",
-      "abril",
-      "mayo",
-      "junio",
-      "julio",
-      "agosto",
-      "septiembre",
-      "octubre",
-      "noviembre",
-      "diciembre",
-    ]
-    return months[month]
-  }
-
-  // Función para sincronizar manualmente con la base de datos
-  const syncWithDatabase = async () => {
     try {
-      setIsLoading(true)
-      toast({
-        title: "Sincronizando",
-        description: "Intentando sincronizar con la base de datos...",
-      })
+      setLoading(true)
 
-      // Obtener posts actuales de Firestore
-      const querySnapshot = await getDocs(collection(db, "blogPosts"))
-      const serverPosts = {}
+      // Eliminar la imagen de Storage si existe
+      if (post.image) {
+        try {
+          // Extraer la ruta de la imagen desde la URL
+          const imageUrl = new URL(post.image)
+          const pathMatch = imageUrl.pathname.match(/\/o\/(.+?)(?:\?|$)/)
 
-      // Crear un mapa de posts del servidor
-      querySnapshot.forEach((doc) => {
-        serverPosts[doc.id] = {
-          id: doc.id,
-          ...doc.data(),
-        }
-      })
+          if (pathMatch && pathMatch[1]) {
+            // Decodificar la ruta de la imagen
+            const imagePath = decodeURIComponent(pathMatch[1])
+            const imageRef = ref(storage, imagePath)
 
-      // Identificar posts que necesitan ser creados o actualizados
-      const batch = writeBatch(db)
-      let changesMade = false
-
-      // Procesar posts locales
-      for (const localPost of posts) {
-        // Ignorar posts temporales o sin ID
-        if (localPost._isTemp || !localPost.id || localPost.id.startsWith("temp_")) {
-          // Crear nuevo documento para posts temporales
-          const newData = { ...localPost }
-          delete newData.id
-          delete newData._isTemp
-
-          const newDocRef = doc(collection(db, "blogPosts"))
-          batch.set(newDocRef, newData)
-          changesMade = true
-          continue
-        }
-
-        // Si el post existe en el servidor, verificar si necesita actualización
-        if (serverPosts[localPost.id]) {
-          // Comparar para ver si hay diferencias
-          const serverPost = serverPosts[localPost.id]
-          if (JSON.stringify(serverPost) !== JSON.stringify(localPost)) {
-            // Hay diferencias, actualizar en el servidor
-            const postRef = doc(db, "blogPosts", localPost.id)
-            const dataToUpdate = { ...localPost }
-            delete dataToUpdate.id // No necesitamos el ID en los datos
-
-            batch.update(postRef, dataToUpdate)
-            changesMade = true
+            // Eliminar la imagen
+            await deleteObject(imageRef)
+            console.log("Imagen eliminada correctamente de Storage")
+          } else {
+            // Si no podemos extraer la ruta, intentamos eliminar directamente
+            const imageRef = ref(storage, post.image)
+            await deleteObject(imageRef)
+            console.log("Imagen eliminada correctamente de Storage (método alternativo)")
           }
-
-          // Marcar como procesado
-          delete serverPosts[localPost.id]
-        } else {
-          // El post no existe en el servidor, crearlo
-          const postRef = doc(db, "blogPosts", localPost.id)
-          const dataToCreate = { ...localPost }
-          delete dataToCreate.id
-
-          batch.set(postRef, dataToCreate)
-          changesMade = true
+        } catch (imageError) {
+          console.error("Error al eliminar la imagen:", imageError)
+          // Continuamos con la eliminación del post aunque falle la eliminación de la imagen
         }
       }
 
-      if (changesMade) {
-        // Ejecutar el batch
-        await batch.commit()
+      // Eliminar el post de Firestore
+      await deleteDoc(doc(db, "blogPosts", post.id))
 
-        // Recargar posts desde el servidor
-        const newQuerySnapshot = await getDocs(collection(db, "blogPosts"))
-        const freshPosts = []
-
-        newQuerySnapshot.forEach((doc) => {
-          freshPosts.push({
-            id: doc.id,
-            ...doc.data(),
-          })
-        })
-
-        setPosts(freshPosts)
-        saveToLocalStorage(freshPosts)
-
-        toast({
-          title: "Sincronización completada",
-          description: "Los artículos se han sincronizado correctamente con la base de datos.",
-        })
-      } else {
-        toast({
-          title: "Sincronización completada",
-          description: "No se detectaron cambios que sincronizar.",
-        })
-      }
-    } catch (error) {
-      console.error("Error syncing with database:", error)
       toast({
-        title: "Error de sincronización",
-        description: "No se pudieron sincronizar los artículos con la base de datos.",
+        title: "Post eliminado",
+        description: "El post ha sido eliminado correctamente.",
+      })
+
+      // Si estábamos editando este post, resetear el formulario
+      if (editingPost && editingPost.id === post.id) {
+        resetForm()
+      }
+
+      // Recargar la lista de posts
+      loadPosts()
+    } catch (error) {
+      console.error("Error al eliminar el post:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el post. Inténtalo de nuevo.",
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  if (isLoading && posts.length === 0) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Cargando artículos...</span>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Administrador de Blog</h2>
-        <Button onClick={syncWithDatabase} variant="outline" disabled={isLoading} className="flex items-center gap-2">
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Sincronizar con base de datos
-        </Button>
-      </div>
+    <Tabs defaultValue="list" className="w-full">
+      <TabsList className="mb-4">
+        <TabsTrigger value="list">Lista de Posts</TabsTrigger>
+        <TabsTrigger value="create">Crear/Editar Post</TabsTrigger>
+      </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{isEditing ? "Editar Artículo" : "Nuevo Artículo"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Título</Label>
-              <Input id="title" name="title" value={currentPost.title} onChange={handleInputChange} required />
+      <TabsContent value="list">
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">Posts del Blog</h2>
+            <Button onClick={loadPosts} disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Actualizar"}
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Descripción</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={currentPost.description}
-                onChange={handleInputChange}
-                required
-              />
+          ) : posts.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">No hay posts publicados aún.</p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {posts.map((post) => (
+                <Card key={post.id} className="flex flex-col">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="line-clamp-2">{post.title}</CardTitle>
+                    <CardDescription>
+                      {post.date} • {post.category || "Sin categoría"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    {post.image && (
+                      <div className="relative h-40 mb-4 rounded overflow-hidden">
+                        <img
+                          src={post.image || "/placeholder.svg"}
+                          alt={post.title}
+                          className="object-cover w-full h-full"
+                          onError={(e) => {
+                            e.target.onerror = null
+                            e.target.src = "/placeholder.svg?height=200&width=400"
+                          }}
+                        />
+                      </div>
+                    )}
+                    <p className="line-clamp-3 text-sm text-muted-foreground mb-2">
+                      {post.description || "Sin descripción"}
+                    </p>
+                  </CardContent>
+                  <CardFooter className="flex justify-between pt-2">
+                    <div className="flex space-x-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(post)}>
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Editar
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleDelete(post)}>
+                        <Trash className="h-4 w-4 mr-1" />
+                        Eliminar
+                      </Button>
+                    </div>
+                    <Button size="sm" variant="ghost" asChild>
+                      <Link href={`/blog/${post.slug}`} target="_blank">
+                        <Eye className="h-4 w-4 mr-1" />
+                        Ver
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
+          )}
+        </div>
+      </TabsContent>
 
-            <div className="space-y-2">
-              <Label htmlFor="content">Contenido</Label>
-              <Textarea
-                id="content"
-                name="content"
-                value={currentPost.content}
-                onChange={handleInputChange}
-                rows={6}
-                required
-              />
-            </div>
+      <TabsContent value="create">
+        <Card>
+          <CardHeader>
+            <CardTitle>{editingPost ? "Editar Post" : "Crear Nuevo Post"}</CardTitle>
+            <CardDescription>
+              {editingPost
+                ? `Editando: ${editingPost.title}`
+                : "Completa el formulario para crear un nuevo post en el blog."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Título</Label>
+                  <Input id="title" value={title} onChange={handleTitleChange} placeholder="Título del post" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="slug">Slug (URL)</Label>
+                  <Input
+                    id="slug"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    placeholder="slug-del-post"
+                    required
+                  />
+                </div>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category">Categoría</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Ventas">Ventas</SelectItem>
+                      <SelectItem value="Liderazgo">Liderazgo</SelectItem>
+                      <SelectItem value="Capacitación">Capacitación</SelectItem>
+                      <SelectItem value="Motivación">Motivación</SelectItem>
+                      <SelectItem value="Desarrollo Personal">Desarrollo Personal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="author">Autor</Label>
+                  <Input
+                    id="author"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Nombre del autor"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="category">Categoría</Label>
-                <Input
-                  id="category"
-                  name="category"
-                  value={currentPost.category}
-                  onChange={handleInputChange}
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Breve descripción del post"
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="content">Contenido</Label>
+                <Textarea
+                  id="content"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Contenido del post (HTML permitido)"
+                  rows={10}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="date">Fecha</Label>
-                <Input
-                  id="date"
-                  name="date"
-                  value={currentPost.date}
-                  onChange={handleInputChange}
-                  placeholder="Dejar en blanco para fecha actual"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Imagen del artículo</Label>
-              <div className="flex items-center gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => imageFileRef.current.click()}
-                  className="flex items-center gap-2"
-                  disabled={isLoading}
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  Subir imagen
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {currentPost.image && currentPost.image !== "/placeholder.svg?height=200&width=400"
-                    ? "Imagen seleccionada"
-                    : "Ninguna imagen seleccionada"}
-                </span>
-                <input
-                  type="file"
-                  ref={imageFileRef}
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-              </div>
-
-              {currentPost.image && (
-                <div className="mt-2 p-2 border rounded-md">
-                  <div className="h-40 flex items-center justify-center">
-                    <img
-                      src={currentPost.image || "/placeholder.svg"}
-                      alt="Vista previa"
-                      className="max-h-full object-contain"
-                      onError={(e) => {
-                        e.target.onerror = null
-                        e.target.src = "/placeholder.svg?height=200&width=400"
-                      }}
-                    />
-                  </div>
+                <Label htmlFor="image">Imagen</Label>
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("image-upload").click()}
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Seleccionar imagen
+                  </Button>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                  {(imagePreview || imageUrl) && (
+                    <div className="relative h-20 w-20 rounded overflow-hidden">
+                      <img src={imagePreview || imageUrl} alt="Vista previa" className="object-cover h-full w-full" />
+                    </div>
+                  )}
                 </div>
+              </div>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={resetForm}>
+              {editingPost ? "Cancelar edición" : "Limpiar formulario"}
+            </Button>
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {editingPost ? "Actualizando..." : "Guardando..."}
+                </>
+              ) : editingPost ? (
+                "Actualizar post"
+              ) : (
+                "Publicar post"
               )}
-            </div>
-
-            <div className="flex justify-end space-x-2">
-              {isEditing && (
-                <Button type="button" variant="outline" onClick={resetForm} disabled={isLoading}>
-                  Cancelar
-                </Button>
-              )}
-              <Button type="submit" disabled={isLoading} className="relative">
-                {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                {saveStatus === "success" && (
-                  <span className="absolute right-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  </span>
-                )}
-                {saveStatus === "error" && (
-                  <span className="absolute right-2">
-                    <AlertCircle className="h-4 w-4 text-red-500" />
-                  </span>
-                )}
-                {isEditing ? "Actualizar" : "Crear"} Artículo
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-4">
-        <h2 className="text-xl font-bold">Artículos Publicados</h2>
-
-        {posts.length === 0 ? (
-          <p className="text-muted-foreground">No hay artículos publicados.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {posts.map((post) => (
-              <Card key={post.id} className={post._isTemp ? "border-dashed border-yellow-500" : ""}>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {post.title}
-                    {post._isTemp && (
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                        Pendiente de sincronización
-                      </span>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {post.date} | {post.category}
-                  </p>
-                  <p className="line-clamp-2">{post.description}</p>
-                </CardContent>
-                <CardFooter className="flex justify-end space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(post)} disabled={isLoading}>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(post.id)} disabled={isLoading}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Eliminar
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+            </Button>
+          </CardFooter>
+        </Card>
+      </TabsContent>
+    </Tabs>
   )
 }
 

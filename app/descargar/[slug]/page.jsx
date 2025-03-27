@@ -5,24 +5,26 @@ import { useRouter } from "next/navigation"
 import { db } from "@/lib/firebase"
 import { collection, query, where, getDocs, doc, updateDoc, increment } from "firebase/firestore"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Download, FileText, RefreshCw } from "lucide-react"
+import { Download, ArrowLeft, Loader2 } from "lucide-react"
+import Link from "next/link"
 
 export default function DownloadPage({ params }) {
   const { slug } = params
   const router = useRouter()
-  const [file, setFile] = useState(null)
+  const [fileData, setFileData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    const fetchFile = async () => {
+    async function loadFile() {
       try {
         setLoading(true)
+        setError(null)
 
-        // Buscar el archivo en Firestore
-        const q = query(collection(db, "files"), where("slug", "==", slug))
-        const querySnapshot = await getDocs(q)
+        // Buscar el archivo en Firestore por slug
+        const filesCollection = collection(db, "files")
+        const fileQuery = query(filesCollection, where("slug", "==", slug))
+        const querySnapshot = await getDocs(fileQuery)
 
         if (querySnapshot.empty) {
           setError("Archivo no encontrado")
@@ -30,97 +32,113 @@ export default function DownloadPage({ params }) {
           return
         }
 
-        // Obtener datos del archivo
+        // Usar el primer documento que coincida
         const fileDoc = querySnapshot.docs[0]
-        const fileData = {
+        const file = {
           id: fileDoc.id,
           ...fileDoc.data(),
         }
 
-        setFile(fileData)
+        setFileData(file)
+
+        // Incrementar el contador de descargas
+        try {
+          const fileDocRef = doc(db, "files", fileDoc.id)
+          await updateDoc(fileDocRef, {
+            downloads: increment(1),
+          })
+        } catch (updateError) {
+          console.error("Error al actualizar contador de descargas:", updateError)
+          // Continuar aunque falle el contador
+        }
       } catch (error) {
         console.error("Error al cargar el archivo:", error)
-        setError("Error al cargar el archivo")
+        setError("Error al cargar la información del archivo")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchFile()
+    loadFile()
   }, [slug])
 
-  // Incrementar contador de descargas y redirigir a la URL de descarga
-  const handleDownload = async () => {
+  // Preparar la URL para la descarga con el nombre de archivo correcto
+  const getDownloadUrl = () => {
+    if (!fileData) return "#"
+
+    // Intentar añadir el Content-Disposition para que se descargue con el nombre correcto
     try {
-      // Incrementar contador
-      await updateDoc(doc(db, "files", file.id), {
-        downloads: increment(1),
-      })
-
-      // Redirigir a la URL de descarga
-      window.location.href = file.storageURL
-    } catch (error) {
-      console.error("Error al descargar:", error)
-      // Si falla, redirigir directamente
-      window.location.href = file.storageURL
+      const url = new URL(fileData.storageURL)
+      url.searchParams.append(
+        "response-content-disposition",
+        `attachment; filename="${encodeURIComponent(fileData.name + "." + fileData.fileType)}"`,
+      )
+      return url.toString()
+    } catch (e) {
+      // Si hay error al manipular la URL, devolver la original
+      return fileData.storageURL
     }
-  }
-
-  // Obtener icono según tipo de archivo
-  const getFileIcon = (fileType) => {
-    if (!fileType) return <FileText className="h-12 w-12" />
-
-    const type = fileType.toLowerCase()
-    if (["pdf"].includes(type)) return <FileText className="h-12 w-12" />
-    if (["doc", "docx", "txt"].includes(type)) return <FileText className="h-12 w-12" />
-    if (["xls", "xlsx", "csv"].includes(type)) return <FileText className="h-12 w-12" />
-    if (["jpg", "jpeg", "png", "gif", "svg"].includes(type)) return <FileText className="h-12 w-12" />
-    return <FileText className="h-12 w-12" />
   }
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[60vh]">
-        <RefreshCw className="h-12 w-12 animate-spin text-primary mb-4" />
-        <h1 className="text-2xl font-bold">Cargando archivo...</h1>
+      <div className="container mx-auto py-12 flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <span>Preparando archivo para descargar...</span>
       </div>
     )
   }
 
-  if (error) {
+  if (error || !fileData) {
     return (
-      <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="text-destructive mb-4">
-          <FileText className="h-12 w-12" />
+      <div className="container mx-auto py-12 px-4">
+        <div className="max-w-lg mx-auto text-center">
+          <h1 className="text-2xl font-bold mb-4">Archivo no encontrado</h1>
+          <p className="mb-6 text-muted-foreground">
+            Lo sentimos, el archivo que estás buscando no existe o ha sido eliminado.
+          </p>
+          <Button asChild>
+            <Link href="/">Volver al inicio</Link>
+          </Button>
         </div>
-        <h1 className="text-2xl font-bold mb-2">Archivo no encontrado</h1>
-        <p className="text-muted-foreground mb-6">El archivo que estás buscando no existe o ha sido eliminado.</p>
-        <Button onClick={() => router.push("/")}>Volver al inicio</Button>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <Card className="max-w-md mx-auto">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4 text-primary">{getFileIcon(file?.fileType)}</div>
-          <CardTitle className="text-2xl">{file?.name}</CardTitle>
-          {file?.description && <CardDescription className="mt-2">{file.description}</CardDescription>}
-        </CardHeader>
-        <CardContent>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-2">Nombre original: {file?.originalName}</p>
-            <p className="text-sm text-muted-foreground">{file?.downloads || 0} descargas</p>
+    <div className="container mx-auto py-12 px-4">
+      <Link href="/" className="inline-flex items-center text-primary hover:underline mb-6">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Volver al inicio
+      </Link>
+
+      <div className="max-w-lg mx-auto">
+        <div className="bg-card rounded-lg shadow-lg overflow-hidden">
+          <div className="p-6">
+            <h1 className="text-2xl font-bold mb-2">{fileData.name}</h1>
+            {fileData.description && <p className="text-muted-foreground mb-6">{fileData.description}</p>}
+            <div className="flex flex-col space-y-2">
+              <p className="text-sm">
+                <span className="font-medium">Tipo:</span> {fileData.fileType?.toUpperCase() || "Desconocido"}
+              </p>
+              <p className="text-sm">
+                <span className="font-medium">Descargas:</span> {fileData.downloads || 0}
+              </p>
+              <p className="text-sm">
+                <span className="font-medium">Nombre original:</span> {fileData.originalName || fileData.name}
+              </p>
+            </div>
+            <div className="mt-8">
+              <Button asChild size="lg" className="w-full">
+                <a href={getDownloadUrl()} download={`${fileData.name}.${fileData.fileType}`}>
+                  <Download className="mr-2 h-5 w-5" />
+                  Descargar Archivo
+                </a>
+              </Button>
+            </div>
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full" size="lg" onClick={handleDownload}>
-            <Download className="mr-2 h-5 w-5" />
-            Descargar Archivo
-          </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

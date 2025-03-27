@@ -1,40 +1,71 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Toaster } from "@/components/ui/toaster"
+import { toast } from "@/components/ui/use-toast"
 import AdminNavbar from "@/components/admin/navbar"
 import BlogManager from "@/components/admin/blog-manager"
 import EventsManager from "@/components/admin/events-manager"
 import ResourcesManager from "@/components/admin/resources-manager"
-import AppearanceManager from "@/components/admin/appearance-manager"
-// Añadir la importación del componente UrlShortener
 import UrlShortener from "@/components/admin/url-shortener"
-import FileManager from "@/components/admin/file-manager.jsx"
+import FileManager from "@/components/admin/file-manager"
 import FirebaseStatus from "@/components/admin/firebase-status"
+import { useAuth } from "@/lib/auth-context"
+import { logoutUser } from "@/lib/firebase"
 
 export default function AdminDashboardPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
+  const { user, userRole, loading } = useAuth()
 
   useEffect(() => {
-    // Verificar autenticación
-    const auth = localStorage.getItem("adminAuthenticated")
-    if (auth !== "true") {
-      router.push("/admin")
-      return
+    if (!loading) {
+      if (!user) {
+        router.push("/admin")
+      } else if (userRole !== "admin") {
+        toast({
+          title: "Acceso denegado",
+          description: "No tienes permisos para acceder al panel de administración.",
+          variant: "destructive",
+        })
+        router.push("/")
+      }
     }
-    setIsAuthenticated(true)
-  }, [router])
+  }, [user, userRole, loading, router])
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminAuthenticated")
-    router.push("/admin")
+  const handleLogout = async () => {
+    try {
+      const result = await logoutUser()
+      if (result.success) {
+        router.push("/admin")
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo cerrar sesión. Intente nuevamente.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error)
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al cerrar sesión. Intente nuevamente.",
+        variant: "destructive",
+      })
+    }
   }
 
-  if (!isAuthenticated) {
-    return <div className="flex justify-center items-center min-h-screen">Verificando autenticación...</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-muted/40">
+        <p>Cargando...</p>
+      </div>
+    )
+  }
+
+  if (!user || userRole !== "admin") {
+    return null
   }
 
   return (
@@ -44,7 +75,6 @@ export default function AdminDashboardPage() {
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold mb-6">Panel de Administración</h1>
 
-        {/* Componente de estado de Firebase */}
         <FirebaseStatus />
 
         <Tabs defaultValue="blog">
@@ -52,10 +82,8 @@ export default function AdminDashboardPage() {
             <TabsTrigger value="blog">Blog</TabsTrigger>
             <TabsTrigger value="events">Eventos</TabsTrigger>
             <TabsTrigger value="resources">Recursos</TabsTrigger>
-            <TabsTrigger value="appearance">Apariencia</TabsTrigger>
             <TabsTrigger value="urls">Acortador URL</TabsTrigger>
-                        <TabsTrigger value="manager">File Manager</TabsTrigger>
-
+            <TabsTrigger value="manager">File Manager</TabsTrigger>
           </TabsList>
 
           <TabsContent value="blog">
@@ -68,10 +96,6 @@ export default function AdminDashboardPage() {
 
           <TabsContent value="resources">
             <ResourcesManager />
-          </TabsContent>
-
-          <TabsContent value="appearance">
-            <AppearanceManager />
           </TabsContent>
 
           <TabsContent value="urls">
