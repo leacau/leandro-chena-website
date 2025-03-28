@@ -126,7 +126,7 @@ export default function Footer() {
 							</li>
 							<li>
 								<a
-									href='https://www.instagram.com/leandro.chena/'
+									href='https://www.instagram.com/leandrochena/'
 									target='_blank'
 									rel='noopener noreferrer'
 									className='text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary'

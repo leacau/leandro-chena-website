@@ -89,7 +89,7 @@ export default function ConsultoriaPage() {
       </div>
       <div className="text-center mt-8">
         <h2 className="text-3xl font-bold mb-6">¿Listo para potenciar tu equipo comercial?</h2>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto pb-12">
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto pb-12 mb-12">
           Contactá conmigo y diseñemos juntos la mejor estrategia para potenciar tu equipo comercial.
         </p>
         <Button size="lg" asChild>

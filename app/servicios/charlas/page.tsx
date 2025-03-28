@@ -99,7 +99,7 @@ export default function CharlasPage() {
 
       <div className="text-center mt-8">
         <h2 className="text-3xl font-bold mb-6">¿Listo para potenciar tu equipo comercial?</h2>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto pb-12">
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto pb-12 mb-12">
           Contactá conmigo para diseñar un programa de capacitación adaptado a las necesidades específicas de tu
           empresa.
         </p>

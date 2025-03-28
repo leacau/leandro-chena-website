@@ -19,16 +19,27 @@ export default function SobreMiPage() {
 				<p className='pl-20'>
 					Mi camino en este mundo comenzó casi por casualidad, cuando mi trabajo
 					me llevó a relacionarme con vendedores. Con el tiempo, me tocó
-					capacitarlos, y más tarde me ofrecieron el desafío de liderarlos. Ahí
-					descubrí mi verdadera vocación: ayudar a otros a crecer y mejorar en
-					el apasionante arte de vender.
+					capacitarlos y más tarde asumir el desafío de liderar equipos
+					comerciales. Ahí descubrí mi verdadera vocación: ayudar a otros a
+					crecer y mejorar en el apasionante arte de vender.
 				</p>
 				<p className='pl-20'>
-					A lo largo de mi carrera, he trabajado con equipos de distintos
-					sectores, formando vendedores, supervisores y líderes comerciales. Mi
-					diferencial no está en la teoría, sino en hablar desde la experiencia
-					vívida, en entender los desafíos reales y en diseñar metodologías
-					prácticas, aplicables y aterrizadas a la realidad de cada negocio.
+					A lo largo de mi carrera, tuve la oportunidad de liderar equipos
+					comerciales en distintas industrias, desde servicios financieros hasta
+					el sector automotriz y de salud. Trabajé con vendedores experimentados
+					y también con jóvenes que recién comenzaban, formando, motivando y
+					diseñando estrategias para potenciar su desempeño. Logré mejorar
+					resultados en entornos altamente competitivos, liderando equipos que
+					superaron metas de ventas, optimizaron procesos comerciales y
+					fortalecieron la relación con los clientes.
+				</p>
+				<p className='pl-20'>
+					Mi diferencial no está en la teoría, sino en hablar desde la
+					experiencia vívida. Sé lo que es estar en la calle buscando clientes,
+					gestionar objeciones, cerrar ventas y enfrentar los altibajos del día
+					a día. Por eso, mis capacitaciones son prácticas, aplicables y
+					diseñadas para que cualquier vendedor, sin importar su nivel de
+					experiencia, pueda implementar lo aprendido de inmediato.
 				</p>
 				<p className='pl-20'>
 					Me guían la humanidad, la sinceridad y el respeto. Creo en la

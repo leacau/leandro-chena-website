@@ -1,8 +1,8 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2 } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Capacitaciones para Equipos Comerciales | Leandro Chena",
@@ -116,7 +116,7 @@ export default function CapacitacionesPage() {
 
       <div className="text-center mt-8">
         <h2 className="text-3xl font-bold mb-6">¿Listo para potenciar tu equipo comercial?</h2>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto pb-12">
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto pb-12 mb-12">
           Contactá conmigo para diseñar un programa de capacitación adaptado a las necesidades específicas de tu
           empresa.
         </p>
