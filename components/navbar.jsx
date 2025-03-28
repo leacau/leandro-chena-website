@@ -13,7 +13,7 @@ export default function Navbar() {
 	const [isScrolled, setIsScrolled] = useState(false);
 	const { theme } = useTheme();
 	const logoSrc =
-		theme === 'dark' ? '/images/logo-white.png' : '/images/logo.png';
+		theme === 'dark' ? '/images/logo-white.webp' : '/images/logo.webp';
 
 	useEffect(() => {
 		const handleScroll = () => {

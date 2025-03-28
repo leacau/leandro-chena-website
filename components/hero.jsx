@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 export default function Hero() {
-
 	return (
 		<div className='relative isolate overflow-hidden'>
 			<div className='absolute inset-0 -z-10 bg-[radial-gradient(45%_40%_at_50%_60%,rgba(0,144,94,0.12),transparent)]' />
@@ -36,7 +35,7 @@ export default function Hero() {
 				<div className='mt-16 sm:mt-24 lg:mt-0 lg:flex-shrink-0 lg:flex-grow'>
 					<div className='relative mx-auto h-80 w-80 overflow-hidden rounded-full md:h-96 md:w-96'>
 						<Image
-							src='/images/hero-image.png'
+							src='/images/hero-image.webp'
 							alt='Leandro Chena'
 							width={400}
 							height={400}

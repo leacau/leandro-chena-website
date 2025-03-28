@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 export default function Footer() {
 	const { theme } = useTheme();
 	const logoSrc =
-		theme === 'dark' ? '/images/logo-white.png' : '/images/logo.png';
+		theme === 'dark' ? '/images/logo-white.webp' : '/images/logo.webp';
 
 	return (
 		<footer className='bg-gray-50 dark:bg-gray-900 w-full overflow-hidden'>
