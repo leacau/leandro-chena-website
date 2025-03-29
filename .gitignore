@@ -25,3 +25,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# pruebas
+*/components/admin/blog-manager2.jsx
+*blog-manager3.jsx
+*blog-manager-bien.jsx
+*resources-manager3.jsx
+*resources-manager4.jsx

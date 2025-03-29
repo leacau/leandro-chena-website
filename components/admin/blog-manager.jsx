@@ -1,28 +1,5 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { db, storage } from '@/lib/firebase';
-import {
-	collection,
-	addDoc,
-	getDocs,
-	doc,
-	deleteDoc,
-	updateDoc,
-	serverTimestamp,
-	query,
-	orderBy,
-} from 'firebase/firestore';
-import {
-	ref,
-	uploadBytes,
-	getDownloadURL,
-	deleteObject,
-} from 'firebase/storage';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
 	Card,
 	CardContent,
@@ -31,7 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Eye, ImageIcon, Loader2, Pencil, Trash } from 'lucide-react';
 import {
 	Select,
 	SelectContent,
@@ -39,23 +16,33 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
-import { Pencil, Trash, Eye, ImageIcon, Loader2 } from 'lucide-react';
-import NextLink from 'next/link';
-import Script from 'next/script';
-import dynamic from 'next/dynamic';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+	addDoc,
+	collection,
+	deleteDoc,
+	doc,
+	getDocs,
+	orderBy,
+	query,
+	serverTimestamp,
+	updateDoc,
+} from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import {
+	deleteObject,
+	getDownloadURL,
+	ref,
+	uploadBytes,
+} from 'firebase/storage';
+import { useEffect, useState } from 'react';
 
-const CKEditor = dynamic(
-	() => import('@ckeditor/ckeditor5-react').then((mod) => mod.CKEditor),
-	{ ssr: false }
-);
-const DecoupledEditor = dynamic(
-	() =>
-		import('@ckeditor/ckeditor5-build-decoupled-document').then(
-			(mod) => mod.DecoupledEditor
-		),
-	{ ssr: false }
-);
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import NextLink from 'next/link';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function BlogManager() {
 	const [posts, setPosts] = useState([]);
@@ -71,141 +58,13 @@ export default function BlogManager() {
 	const [imageUrl, setImageUrl] = useState('');
 	const [editingPost, setEditingPost] = useState(null);
 	const [submitting, setSubmitting] = useState(false);
-	const [editorLoaded, setEditorLoaded] = useState(false);
 	const [activeTab, setActiveTab] = useState('list');
 	const { toast } = useToast();
-	const editorRef = useRef(null);
-	const editorElementRef = useRef(null);
 
 	// Cargar posts al iniciar
 	useEffect(() => {
 		loadPosts();
 	}, []);
-
-	// Inicializar el editor cuando el componente se monta y el script está cargado
-	useEffect(() => {
-		if (
-			editorLoaded &&
-			DecoupledEditor &&
-			editorElementRef.current &&
-			activeTab === 'create' &&
-			!editorRef.current
-		) {
-			initEditor();
-		}
-	}, [editorLoaded, activeTab]);
-
-	// Inicializar el editor CKEditor
-	const initEditor = async () => {
-		try {
-			if (editorRef.current || !editorElementRef.current) {
-				return;
-			}
-
-			const editor = await DecoupledEditor.create(editorElementRef.current, {
-				toolbar: {
-					items: [
-						'heading',
-						'|',
-						'bold',
-						'italic',
-						'link',
-						'bulletedList',
-						'numberedList',
-						'|',
-						'outdent',
-						'indent',
-						'|',
-						'blockQuote',
-						'insertTable',
-						'undo',
-						'redo',
-					],
-				},
-				heading: {
-					options: [
-						{
-							model: 'paragraph',
-							title: 'Paragraph',
-							class: 'ck-heading_paragraph',
-						},
-						{
-							model: 'heading1',
-							view: 'h1',
-							title: 'Heading 1',
-							class: 'ck-heading_heading1',
-						},
-						{
-							model: 'heading2',
-							view: 'h2',
-							title: 'Heading 2',
-							class: 'ck-heading_heading2',
-						},
-						{
-							model: 'heading3',
-							view: 'h3',
-							title: 'Heading 3',
-							class: 'ck-heading_heading3',
-						},
-					],
-				},
-				indentBlock: {
-					offset: 1,
-					unit: 'em',
-				},
-				list: {
-					properties: {
-						styles: true,
-						startIndex: true,
-						reversed: true,
-					},
-				},
-			})
-				.then((editor) => {
-					editor.ui
-						.getEditableElement()
-						.parentElement.insertBefore(
-							editor.ui.view.toolbar.element,
-							editor.ui.getEditableElement()
-						);
-					editorRef.current = editor;
-				})
-				.catch((error) => {
-					console.error('There was a problem initializing the editor.', error);
-				});
-
-			editorRef.current = editor;
-		} catch (error) {
-			console.error('Error al inicializar el editor:', error);
-			toast({
-				title: 'Error',
-				description:
-					'No se pudo inicializar el editor. Por favor, recarga la página.',
-				variant: 'destructive',
-			});
-		}
-	};
-
-	// Limpiar el editor cuando el componente se desmonta
-	useEffect(() => {
-		return () => {
-			if (editorRef.current) {
-				editorRef.current
-					.destroy()
-					.catch((error) =>
-						console.error('Error al destruir el editor:', error)
-					);
-				editorRef.current = null;
-			}
-		};
-	}, []);
-
-	// Actualizar el contenido del editor cuando se edita un post
-	useEffect(() => {
-		if (editorRef.current && editingPost) {
-			editorRef.current.setData(content);
-		}
-	}, [editingPost, content]);
 
 	const loadPosts = async () => {
 		try {
@@ -268,9 +127,6 @@ export default function BlogManager() {
 		setTitle('');
 		setSlug('');
 		setContent('');
-		if (editorRef.current) {
-			editorRef.current.setData('');
-		}
 		setDescription('');
 		setCategory('');
 		setAuthor('');
@@ -283,10 +139,10 @@ export default function BlogManager() {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 
-		if (!title || !slug || !content) {
+		if (!title || !slug) {
 			toast({
 				title: 'Campos requeridos',
-				description: 'Por favor completa al menos título, slug y contenido.',
+				description: 'Por favor completa al menos título y slug.',
 				variant: 'destructive',
 			});
 			return;
@@ -368,13 +224,6 @@ export default function BlogManager() {
 
 		// Cambiar a la pestaña de edición
 		setActiveTab('create');
-
-		// Asegurarse de que el editor esté inicializado y actualizar su contenido
-		setTimeout(() => {
-			if (editorRef.current) {
-				editorRef.current.setData(post.content || '');
-			}
-		}, 100);
 	};
 
 	const handleDelete = async (post) => {
@@ -445,345 +294,272 @@ export default function BlogManager() {
 		}
 	};
 
-	const handleTabChange = (value) => {
-		setActiveTab(value);
-
-		// Si cambiamos a la pestaña de creación, inicializar el editor después de un breve retraso
-		if (
-			value === 'create' &&
-			editorLoaded &&
-			DecoupledEditor &&
-			!editorRef.current
-		) {
-			setTimeout(() => {
-				if (editorElementRef.current && !editorRef.current) {
-					initEditor();
-				}
-			}, 100);
-		}
-	};
-
 	return (
-		<>
-			<Script
-				src='https://cdn.ckeditor.com/ckeditor5/40.0.0/decoupled-document/ckeditor.js'
-				onLoad={() => setEditorLoaded(true)}
-				strategy='afterInteractive'
-			/>
+		<Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
+			<TabsList className='mb-4'>
+				<TabsTrigger value='list'>Lista de Posts</TabsTrigger>
+				<TabsTrigger value='create'>Crear/Editar Post</TabsTrigger>
+			</TabsList>
 
-			<Tabs
-				value={activeTab}
-				onValueChange={handleTabChange}
-				className='w-full'
-			>
-				<TabsList className='mb-4'>
-					<TabsTrigger value='list'>Lista de Posts</TabsTrigger>
-					<TabsTrigger value='create'>Crear/Editar Post</TabsTrigger>
-				</TabsList>
-
-				<TabsContent value='list'>
-					<div className='space-y-4'>
-						<div className='flex justify-between items-center'>
-							<h2 className='text-xl font-bold'>Posts del Blog</h2>
-							<Button onClick={loadPosts} disabled={loading}>
-								{loading ? (
-									<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-								) : (
-									'Actualizar'
-								)}
-							</Button>
-						</div>
-
-						{loading ? (
-							<div className='flex justify-center p-8'>
-								<Loader2 className='h-8 w-8 animate-spin' />
-							</div>
-						) : posts.length === 0 ? (
-							<p className='text-center py-8 text-muted-foreground'>
-								No hay posts publicados aún.
-							</p>
-						) : (
-							<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-								{posts.map((post) => (
-									<Card key={post.id} className='flex flex-col'>
-										<CardHeader className='pb-2'>
-											<CardTitle className='line-clamp-2'>
-												{post.title}
-											</CardTitle>
-											<CardDescription>
-												{post.date} • {post.category || 'Sin categoría'}
-											</CardDescription>
-										</CardHeader>
-										<CardContent className='flex-grow'>
-											{post.image && (
-												<div className='relative h-40 mb-4 rounded overflow-hidden'>
-													<img
-														src={post.image || '/placeholder.svg'}
-														alt={post.title}
-														className='object-cover w-full h-full'
-														onError={(e) => {
-															e.target.onerror = null;
-															e.target.src =
-																'/placeholder.svg?height=200&width=400';
-														}}
-													/>
-												</div>
-											)}
-											<p className='line-clamp-3 text-sm text-muted-foreground mb-2'>
-												{post.description || 'Sin descripción'}
-											</p>
-										</CardContent>
-										<CardFooter className='flex justify-between pt-2'>
-											<div className='flex space-x-2'>
-												<Button
-													size='sm'
-													variant='outline'
-													onClick={() => handleEdit(post)}
-												>
-													<Pencil className='h-4 w-4 mr-1' />
-													Editar
-												</Button>
-												<Button
-													size='sm'
-													variant='destructive'
-													onClick={() => handleDelete(post)}
-												>
-													<Trash className='h-4 w-4 mr-1' />
-													Eliminar
-												</Button>
-											</div>
-											<Button size='sm' variant='ghost' asChild>
-												<NextLink href={`/blog/${post.slug}`} target='_blank'>
-													<Eye className='h-4 w-4 mr-1' />
-													Ver
-												</NextLink>
-											</Button>
-										</CardFooter>
-									</Card>
-								))}
-							</div>
-						)}
+			<TabsContent value='list'>
+				<div className='space-y-4'>
+					<div className='flex justify-between items-center'>
+						<h2 className='text-xl font-bold'>Posts del Blog</h2>
+						<Button onClick={loadPosts} disabled={loading}>
+							{loading ? (
+								<Loader2 className='mr-2 h-4 w-4 animate-spin' />
+							) : (
+								'Actualizar'
+							)}
+						</Button>
 					</div>
-				</TabsContent>
 
-				<TabsContent value='create'>
-					<Card>
-						<CardHeader>
-							<CardTitle>
-								{editingPost ? 'Editar Post' : 'Crear Nuevo Post'}
-							</CardTitle>
-							<CardDescription>
-								{editingPost
-									? `Editando: ${editingPost.title}`
-									: 'Completa el formulario para crear un nuevo post en el blog.'}
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<form onSubmit={handleSubmit} className='space-y-4'>
-								<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-									<div className='space-y-2'>
-										<Label htmlFor='title'>Título</Label>
-										<Input
-											id='title'
-											value={title}
-											onChange={handleTitleChange}
-											placeholder='Título del post'
-											required
-										/>
-									</div>
-									<div className='space-y-2'>
-										<Label htmlFor='slug'>Slug (URL)</Label>
-										<Input
-											id='slug'
-											value={slug}
-											onChange={(e) => setSlug(e.target.value)}
-											placeholder='slug-del-post'
-											required
-										/>
-									</div>
-								</div>
-
-								<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-									<div className='space-y-2'>
-										<Label htmlFor='category'>Categoría</Label>
-										<Select value={category} onValueChange={setCategory}>
-											<SelectTrigger>
-												<SelectValue placeholder='Selecciona una categoría' />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value='Ventas'>Ventas</SelectItem>
-												<SelectItem value='Liderazgo'>Liderazgo</SelectItem>
-												<SelectItem value='Capacitación'>
-													Capacitación
-												</SelectItem>
-												<SelectItem value='Motivación'>Motivación</SelectItem>
-												<SelectItem value='Desarrollo Personal'>
-													Desarrollo Personal
-												</SelectItem>
-											</SelectContent>
-										</Select>
-									</div>
-									<div className='space-y-2'>
-										<Label htmlFor='author'>Autor</Label>
-										<Input
-											id='author'
-											value={author}
-											onChange={(e) => setAuthor(e.target.value)}
-											placeholder='Nombre del autor'
-										/>
-									</div>
-								</div>
-
-								<div className='space-y-2'>
-									<Label htmlFor='description'>Descripción</Label>
-									<Textarea
-										id='description'
-										value={description}
-										onChange={(e) => setDescription(e.target.value)}
-										placeholder='Breve descripción del post'
-										rows={2}
-									/>
-								</div>
-
-								<div className='space-y-2'>
-									<Label htmlFor='content'>Contenido</Label>
-									<div className='border rounded-md overflow-hidden'>
-										{!editorLoaded ? (
-											<div className='flex items-center justify-center p-8 min-h-[300px]'>
-												<Loader2 className='h-8 w-8 animate-spin' />
-											</div>
-										) : (
-											<CKEditor
-												editor={DecoupledEditor}
-												data={editingPost?.content || content || ''}
-												onChange={(event, editor) => {
-													const data = editor.getData();
-													setContent(data);
-												}}
-												onReady={(editor) => {
-													// Configuración del editor
-													editor.ui
-														.getEditableElement()
-														.parentElement.insertBefore(
-															editor.ui.view.toolbar.element,
-															editor.ui.getEditableElement()
-														);
-												}}
-												config={{
-													toolbar: [
-														'heading',
-														'|',
-														'bold',
-														'italic',
-														'link',
-														'bulletedList',
-														'numberedList',
-														'|',
-														'outdent',
-														'indent',
-														'|',
-														'blockQuote',
-														'insertTable',
-														'mediaEmbed',
-														'undo',
-														'redo',
-													],
-													indentBlock: {
-														offset: 1,
-														unit: 'em',
-													},
-													list: {
-														properties: {
-															styles: true,
-															startIndex: true,
-															reversed: true,
-														},
-													},
-												}}
-											/>
-										)}
-									</div>
-									<p className='text-xs text-muted-foreground mt-2'>
-										Usa las herramientas de formato para crear contenido rico
-										con títulos, listas, imágenes y más.
-									</p>
-								</div>
-
-								<div className='space-y-2'>
-									<Label htmlFor='image'>Imagen de portada</Label>
-									<div className='flex items-center gap-4'>
-										<Button
-											type='button'
-											variant='outline'
-											onClick={() =>
-												document.getElementById('image-upload').click()
-											}
-										>
-											<ImageIcon className='h-4 w-4 mr-2' />
-											Seleccionar imagen
-										</Button>
-										<Input
-											id='image-upload'
-											type='file'
-											accept='image/*'
-											onChange={handleImageChange}
-											className='hidden'
-										/>
-										{(imagePreview || imageUrl) && (
-											<div className='relative h-20 w-20 rounded overflow-hidden'>
+					{loading ? (
+						<div className='flex justify-center p-8'>
+							<Loader2 className='h-8 w-8 animate-spin' />
+						</div>
+					) : posts.length === 0 ? (
+						<p className='text-center py-8 text-muted-foreground'>
+							No hay posts publicados aún.
+						</p>
+					) : (
+						<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+							{posts.map((post) => (
+								<Card key={post.id} className='flex flex-col'>
+									<CardHeader className='pb-2'>
+										<CardTitle className='line-clamp-2'>{post.title}</CardTitle>
+										<CardDescription>
+											{post.date} • {post.category || 'Sin categoría'}
+										</CardDescription>
+									</CardHeader>
+									<CardContent className='flex-grow'>
+										{post.image && (
+											<div className='relative h-40 mb-4 rounded overflow-hidden'>
 												<img
-													src={imagePreview || imageUrl}
-													alt='Vista previa'
-													className='object-cover h-full w-full'
+													src={post.image || '/placeholder.svg'}
+													alt={post.title}
+													className='object-cover w-full h-full'
+													onError={(e) => {
+														e.target.onerror = null;
+														e.target.src =
+															'/placeholder.svg?height=200&width=400';
+													}}
 												/>
 											</div>
 										)}
-									</div>
-								</div>
-							</form>
-						</CardContent>
-						<CardFooter className='flex justify-between'>
-							<Button variant='outline' onClick={resetForm}>
-								{editingPost ? 'Cancelar edición' : 'Limpiar formulario'}
-							</Button>
-							<Button onClick={handleSubmit} disabled={submitting}>
-								{submitting ? (
-									<>
-										<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-										{editingPost ? 'Actualizando...' : 'Guardando...'}
-									</>
-								) : editingPost ? (
-									'Actualizar post'
-								) : (
-									'Publicar post'
-								)}
-							</Button>
-						</CardFooter>
-					</Card>
-				</TabsContent>
-			</Tabs>
+										<p className='line-clamp-3 text-sm text-muted-foreground mb-2'>
+											{post.description || 'Sin descripción'}
+										</p>
+									</CardContent>
+									<CardFooter className='flex justify-between pt-2'>
+										<div className='flex space-x-2'>
+											<Button
+												size='sm'
+												variant='outline'
+												onClick={() => handleEdit(post)}
+											>
+												<Pencil className='h-4 w-4 mr-1' />
+												Editar
+											</Button>
+											<Button
+												size='sm'
+												variant='destructive'
+												onClick={() => handleDelete(post)}
+											>
+												<Trash className='h-4 w-4 mr-1' />
+												Eliminar
+											</Button>
+										</div>
+										<Button size='sm' variant='ghost' asChild>
+											<NextLink href={`/blog/${post.slug}`} target='_blank'>
+												<Eye className='h-4 w-4 mr-1' />
+												Ver
+											</NextLink>
+										</Button>
+									</CardFooter>
+								</Card>
+							))}
+						</div>
+					)}
+				</div>
+			</TabsContent>
 
-			<style jsx global>{`
-				.ck-editor__editable {
-					min-height: 300px;
-					max-height: 600px;
-				}
-				.ck-editor__editable_inline {
-					padding: 0 1rem;
-				}
-				.ck.ck-editor__main > .ck-editor__editable:not(.ck-focused) {
-					border-color: var(--border);
-				}
-				.ck.ck-toolbar {
-					border-color: var(--border);
-					background: var(--muted);
-				}
-				.ck.ck-button:not(.ck-disabled):hover,
-				.ck.ck-button:not(.ck-disabled).ck-on {
-					background: var(--muted-foreground);
-				}
-			`}</style>
-		</>
+			<TabsContent value='create'>
+				<Card>
+					<CardHeader>
+						<CardTitle>
+							{editingPost ? 'Editar Post' : 'Crear Nuevo Post'}
+						</CardTitle>
+						<CardDescription>
+							{editingPost
+								? `Editando: ${editingPost.title}`
+								: 'Completa el formulario para crear un nuevo post en el blog.'}
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<form onSubmit={handleSubmit} className='space-y-4'>
+							<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+								<div className='space-y-2'>
+									<Label htmlFor='title'>Título</Label>
+									<Input
+										id='title'
+										value={title}
+										onChange={handleTitleChange}
+										placeholder='Título del post'
+										required
+									/>
+								</div>
+								<div className='space-y-2'>
+									<Label htmlFor='slug'>Slug (URL)</Label>
+									<Input
+										id='slug'
+										value={slug}
+										onChange={(e) => setSlug(e.target.value)}
+										placeholder='slug-del-post'
+										required
+									/>
+								</div>
+							</div>
+
+							<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+								<div className='space-y-2'>
+									<Label htmlFor='category'>Categoría</Label>
+									<Select value={category} onValueChange={setCategory}>
+										<SelectTrigger>
+											<SelectValue placeholder='Selecciona una categoría' />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value='Ventas'>Ventas</SelectItem>
+											<SelectItem value='Liderazgo'>Liderazgo</SelectItem>
+											<SelectItem value='Capacitación'>Capacitación</SelectItem>
+											<SelectItem value='Motivación'>Motivación</SelectItem>
+											<SelectItem value='Desarrollo Personal'>
+												Desarrollo Personal
+											</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+								<div className='space-y-2'>
+									<Label htmlFor='author'>Autor</Label>
+									<Input
+										id='author'
+										value={author}
+										onChange={(e) => setAuthor(e.target.value)}
+										placeholder='Nombre del autor'
+									/>
+								</div>
+							</div>
+
+							<div className='space-y-2'>
+								<Label htmlFor='description'>Descripción</Label>
+								<Textarea
+									id='description'
+									value={description}
+									onChange={(e) => setDescription(e.target.value)}
+									placeholder='Breve descripción del post'
+									rows={2}
+								/>
+							</div>
+
+							<div className='space-y-2'>
+								<Label htmlFor='content'>Contenido (HTML)</Label>
+								<div className='border rounded-md'>
+									<Textarea
+										id='content'
+										value={content}
+										onChange={(e) => setContent(e.target.value)}
+										placeholder='Contenido del post en formato HTML'
+										rows={15}
+										className='font-mono text-sm'
+									/>
+								</div>
+								<div className='text-xs text-muted-foreground mt-2'>
+									<p>
+										Puedes usar HTML para dar formato al contenido. Ejemplos:
+									</p>
+									<ul className='list-disc pl-5 mt-1 space-y-1'>
+										<li>
+											<code>&lt;h2&gt;Título&lt;/h2&gt;</code> - Para títulos
+										</li>
+										<li>
+											<code>&lt;p&gt;Párrafo&lt;/p&gt;</code> - Para párrafos
+										</li>
+										<li>
+											<code>&lt;strong&gt;Texto en negrita&lt;/strong&gt;</code>{' '}
+											- Para texto en negrita
+										</li>
+										<li>
+											<code>&lt;em&gt;Texto en cursiva&lt;/em&gt;</code> - Para
+											texto en cursiva
+										</li>
+										<li>
+											<code>
+												&lt;ul&gt;&lt;li&gt;Elemento de
+												lista&lt;/li&gt;&lt;/ul&gt;
+											</code>{' '}
+											- Para listas
+										</li>
+										<li>
+											<code>&lt;blockquote&gt;Cita&lt;/blockquote&gt;</code> -
+											Para citas
+										</li>
+									</ul>
+								</div>
+							</div>
+
+							<div className='space-y-2'>
+								<Label htmlFor='image'>Imagen de portada</Label>
+								<div className='flex items-center gap-4'>
+									<Button
+										type='button'
+										variant='outline'
+										onClick={() =>
+											document.getElementById('image-upload').click()
+										}
+									>
+										<ImageIcon className='h-4 w-4 mr-2' />
+										Seleccionar imagen
+									</Button>
+									<Input
+										id='image-upload'
+										type='file'
+										accept='image/*'
+										onChange={handleImageChange}
+										className='hidden'
+									/>
+									{(imagePreview || imageUrl) && (
+										<div className='relative h-20 w-20 rounded overflow-hidden'>
+											<img
+												src={imagePreview || imageUrl}
+												alt='Vista previa'
+												className='object-cover h-full w-full'
+											/>
+										</div>
+									)}
+								</div>
+							</div>
+						</form>
+					</CardContent>
+					<CardFooter className='flex justify-between'>
+						<Button variant='outline' onClick={resetForm}>
+							{editingPost ? 'Cancelar edición' : 'Limpiar formulario'}
+						</Button>
+						<Button onClick={handleSubmit} disabled={submitting}>
+							{submitting ? (
+								<>
+									<Loader2 className='mr-2 h-4 w-4 animate-spin' />
+									{editingPost ? 'Actualizando...' : 'Guardando...'}
+								</>
+							) : editingPost ? (
+								'Actualizar post'
+							) : (
+								'Publicar post'
+							)}
+						</Button>
+					</CardFooter>
+				</Card>
+			</TabsContent>
+		</Tabs>
 	);
 }
 
