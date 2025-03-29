@@ -31,7 +31,7 @@ export default function Hero() {
 							<Link href='/servicios'>Conocé mis servicios</Link>
 						</Button>
 					</div>
-				</div>
+				</div>	
 				<div className='mt-16 sm:mt-24 lg:mt-0 lg:flex-shrink-0 lg:flex-grow'>
 					<div className='relative mx-auto h-80 w-80 overflow-hidden rounded-full md:h-96 md:w-96'>
 						<Image

@@ -1,28 +1,5 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { db, storage } from '@/lib/firebase';
-import {
-	collection,
-	addDoc,
-	getDocs,
-	doc,
-	deleteDoc,
-	updateDoc,
-	serverTimestamp,
-	query,
-	orderBy,
-} from 'firebase/firestore';
-import {
-	ref,
-	uploadBytes,
-	getDownloadURL,
-	deleteObject,
-} from 'firebase/storage';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
 	Card,
 	CardContent,
@@ -31,7 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Eye, ImageIcon, Loader2, Pencil, Trash } from 'lucide-react';
 import {
 	Select,
 	SelectContent,
@@ -39,23 +16,34 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
-import { Pencil, Trash, Eye, ImageIcon, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+	addDoc,
+	collection,
+	deleteDoc,
+	doc,
+	getDocs,
+	orderBy,
+	query,
+	serverTimestamp,
+	updateDoc,
+} from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import {
+	deleteObject,
+	getDownloadURL,
+	ref,
+	uploadBytes,
+} from 'firebase/storage';
+import { useEffect, useRef, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import NextLink from 'next/link';
 import Script from 'next/script';
-import dynamic from 'next/dynamic';
-
-const CKEditor = dynamic(
-	() => import('@ckeditor/ckeditor5-react').then((mod) => mod.CKEditor),
-	{ ssr: false }
-);
-const DecoupledEditor = dynamic(
-	() =>
-		import('@ckeditor/ckeditor5-build-decoupled-document').then(
-			(mod) => mod.DecoupledEditor
-		),
-	{ ssr: false }
-);
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function BlogManager() {
 	const [posts, setPosts] = useState([]);
@@ -86,7 +74,7 @@ export default function BlogManager() {
 	useEffect(() => {
 		if (
 			editorLoaded &&
-			DecoupledEditor &&
+			window.ClassicEditor &&
 			editorElementRef.current &&
 			activeTab === 'create' &&
 			!editorRef.current
@@ -102,14 +90,17 @@ export default function BlogManager() {
 				return;
 			}
 
-			const editor = await DecoupledEditor.create(editorElementRef.current, {
-				toolbar: {
-					items: [
+			const editor = await window.ClassicEditor.create(
+				editorElementRef.current,
+				{
+					toolbar: [
 						'heading',
 						'|',
 						'bold',
 						'italic',
+						'underline',
 						'link',
+						'|',
 						'bulletedList',
 						'numberedList',
 						'|',
@@ -121,58 +112,48 @@ export default function BlogManager() {
 						'undo',
 						'redo',
 					],
-				},
-				heading: {
-					options: [
-						{
-							model: 'paragraph',
-							title: 'Paragraph',
-							class: 'ck-heading_paragraph',
-						},
-						{
-							model: 'heading1',
-							view: 'h1',
-							title: 'Heading 1',
-							class: 'ck-heading_heading1',
-						},
-						{
-							model: 'heading2',
-							view: 'h2',
-							title: 'Heading 2',
-							class: 'ck-heading_heading2',
-						},
-						{
-							model: 'heading3',
-							view: 'h3',
-							title: 'Heading 3',
-							class: 'ck-heading_heading3',
-						},
-					],
-				},
-				indentBlock: {
-					offset: 1,
-					unit: 'em',
-				},
-				list: {
-					properties: {
-						styles: true,
-						startIndex: true,
-						reversed: true,
+					heading: {
+						options: [
+							{
+								model: 'paragraph',
+								title: 'Párrafo',
+								class: 'ck-heading_paragraph',
+							},
+							{
+								model: 'heading1',
+								view: 'h1',
+								title: 'Encabezado 1',
+								class: 'ck-heading_heading1',
+							},
+							{
+								model: 'heading2',
+								view: 'h2',
+								title: 'Encabezado 2',
+								class: 'ck-heading_heading2',
+							},
+							{
+								model: 'heading3',
+								view: 'h3',
+								title: 'Encabezado 3',
+								class: 'ck-heading_heading3',
+							},
+						],
 					},
-				},
-			})
-				.then((editor) => {
-					editor.ui
-						.getEditableElement()
-						.parentElement.insertBefore(
-							editor.ui.view.toolbar.element,
-							editor.ui.getEditableElement()
-						);
-					editorRef.current = editor;
-				})
-				.catch((error) => {
-					console.error('There was a problem initializing the editor.', error);
-				});
+					placeholder: 'Escribe el contenido del post aquí...',
+					blockToolbar: ['blockQuote'],
+					// Configuración específica para blockquote
+					blockQuote: {
+						toolbar: ['blockQuote'],
+					},
+				}
+			);
+
+			editor.setData(content);
+
+			editor.model.document.on('change:data', () => {
+				const newContent = editor.getData();
+				setContent(newContent);
+			});
 
 			editorRef.current = editor;
 		} catch (error) {
@@ -452,7 +433,7 @@ export default function BlogManager() {
 		if (
 			value === 'create' &&
 			editorLoaded &&
-			DecoupledEditor &&
+			window.ClassicEditor &&
 			!editorRef.current
 		) {
 			setTimeout(() => {
@@ -466,7 +447,7 @@ export default function BlogManager() {
 	return (
 		<>
 			<Script
-				src='https://cdn.ckeditor.com/ckeditor5/40.0.0/decoupled-document/ckeditor.js'
+				src='https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js'
 				onLoad={() => setEditorLoaded(true)}
 				strategy='afterInteractive'
 			/>
@@ -653,54 +634,11 @@ export default function BlogManager() {
 												<Loader2 className='h-8 w-8 animate-spin' />
 											</div>
 										) : (
-											<CKEditor
-												editor={DecoupledEditor}
-												data={editingPost?.content || content || ''}
-												onChange={(event, editor) => {
-													const data = editor.getData();
-													setContent(data);
-												}}
-												onReady={(editor) => {
-													// Configuración del editor
-													editor.ui
-														.getEditableElement()
-														.parentElement.insertBefore(
-															editor.ui.view.toolbar.element,
-															editor.ui.getEditableElement()
-														);
-												}}
-												config={{
-													toolbar: [
-														'heading',
-														'|',
-														'bold',
-														'italic',
-														'link',
-														'bulletedList',
-														'numberedList',
-														'|',
-														'outdent',
-														'indent',
-														'|',
-														'blockQuote',
-														'insertTable',
-														'mediaEmbed',
-														'undo',
-														'redo',
-													],
-													indentBlock: {
-														offset: 1,
-														unit: 'em',
-													},
-													list: {
-														properties: {
-															styles: true,
-															startIndex: true,
-															reversed: true,
-														},
-													},
-												}}
-											/>
+											<div
+												ref={editorElementRef}
+												className='min-h-[300px] p-4'
+												dangerouslySetInnerHTML={{ __html: content }}
+											></div>
 										)}
 									</div>
 									<p className='text-xs text-muted-foreground mt-2'>

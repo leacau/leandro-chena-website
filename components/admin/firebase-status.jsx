@@ -32,8 +32,6 @@ export default function FirebaseStatus() {
 				appId: process.env.NEXT_PUBLIC_MEASUREMENTID || '',
 			};
 
-			console.log(config);
-
 			// Verificar si hay variables de entorno faltantes
 			const missingVars = Object.entries(config)
 				.filter(([_, value]) => !value)

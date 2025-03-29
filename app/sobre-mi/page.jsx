@@ -10,48 +10,84 @@ export default function SobreMiPage() {
 			<h1 className='text-4xl font-bold tracking-tight sm:text-5xl mb-6'>
 				Sobre Mí
 			</h1>
-			<div className='prose prose-lg dark:prose-invert max-w-none'>
-				<p className='pl-20'>
-					Soy Leandro, un apasionado de las ventas y del desarrollo de las
-					personas. Creo en el aprendizaje continuo, en la importancia de la
-					experiencia real y en la capacidad de cada persona para superarse.
-				</p>
-				<p className='pl-20'>
-					Mi camino en este mundo comenzó casi por casualidad, cuando mi trabajo
-					me llevó a relacionarme con vendedores. Con el tiempo, me tocó
-					capacitarlos y más tarde asumir el desafío de liderar equipos
-					comerciales. Ahí descubrí mi verdadera vocación: ayudar a otros a
-					crecer y mejorar en el apasionante arte de vender.
-				</p>
-				<p className='pl-20'>
-					A lo largo de mi carrera, tuve la oportunidad de liderar equipos
-					comerciales en distintas industrias, desde servicios financieros hasta
-					el sector automotriz y de salud. Trabajé con vendedores experimentados
-					y también con jóvenes que recién comenzaban, formando, motivando y
-					diseñando estrategias para potenciar su desempeño. Logré mejorar
-					resultados en entornos altamente competitivos, liderando equipos que
-					superaron metas de ventas, optimizaron procesos comerciales y
-					fortalecieron la relación con los clientes.
-				</p>
-				<p className='pl-20'>
-					Mi diferencial no está en la teoría, sino en hablar desde la
-					experiencia vívida. Sé lo que es estar en la calle buscando clientes,
-					gestionar objeciones, cerrar ventas y enfrentar los altibajos del día
-					a día. Por eso, mis capacitaciones son prácticas, aplicables y
-					diseñadas para que cualquier vendedor, sin importar su nivel de
-					experiencia, pueda implementar lo aprendido de inmediato.
-				</p>
-				<p className='pl-20'>
-					Me guían la humanidad, la sinceridad y el respeto. Creo en la
-					formación que transforma, en el aprendizaje que se traduce en acción y
-					en el impacto real que una buena capacitación puede generar en una
-					persona, un equipo y un negocio.
-				</p>
-				<p className='pl-20'>
-					Si llegaste hasta acá, te invito a explorar la página. Quizás
-					encuentres algo que te ayude a dar el siguiente paso en tu camino.
-				</p>
+
+			<div className='bg-card rounded-xl shadow-md overflow-hidden'>
+				<div className='md:flex'>
+					<div className='md:flex-1 p-6 md:p-8 lg:p-10'>
+						<div className='prose prose-lg dark:prose-invert max-w-none'>
+							<p className='text-xl font-medium mb-6 text-black'>
+								¡Hola! Soy Leandro Chena, un apasionado por las ventas y el
+								desarrollo de las personas.
+							</p>
+							<p className='text-xl font-medium mb-6 text-black'>
+								Desde hace años, me dedico a acompañar equipos comerciales,
+								buscando siempre ayudarlos a alcanzar sus objetivos y superar
+								sus propios límites. Me encanta entender cómo funcionan los
+								procesos y encontrar formas de mejorarlos para que todos podamos
+								crecer juntos.
+							</p>
+
+							<p className='text-xl font-medium mb-6 text-black'>
+								Creo en el aprendizaje constante y práctico, en meter las manos
+								en la masa para aprender haciendo, porque es ahí donde se
+								generan los verdaderos cambios. Mi enfoque está siempre en el
+								otro, en su crecimiento y en construir relaciones que vayan más
+								allá de la venta.
+							</p>
+
+							<p className='text-xl font-medium mb-6 text-black'>
+								Si algo aprendí en todo este tiempo es que cada desafío es una
+								oportunidad para mejorar, y eso es lo que intento transmitir en
+								cada capacitación o charla que doy.
+							</p>
+
+							<p className='text-xl font-medium mb-6 text-black'>
+								Así que, si estás buscando a alguien que te acompañe a
+								transformar tus ventas y tu equipo, estoy acá para vos. 😉
+							</p>
+						</div>
+					</div>
+
+					<div className='md:w-2/5 lg:w-1/3 relative'>
+						<div className='h-full'>
+							<img
+								src='/images/about.webp'
+								alt='Leandro Chena'
+								className='h-full w-full object-cover'
+							/>
+						</div>
+						<div className='absolute inset-0 bg-gradient-to-t from-black/30 to-transparent md:bg-gradient-to-r md:from-transparent md:to-transparent'></div>
+					</div>
+				</div>
+			</div>
+
+			<div className='mt-16 grid grid-cols-1 md:grid-cols-3 gap-8'>
+				<div className='bg-card rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow'>
+					<h3 className='text-xl font-bold mb-3'>Experiencia</h3>
+					<p>
+						Más de 15 años liderando equipos comerciales, potenciando las
+						habilidades de las personas para transformar acciones en objetivos
+						cumplidos.
+					</p>
+				</div>
+
+				<div className='bg-card rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow'>
+					<h3 className='text-xl font-bold mb-3'>Enfoque</h3>
+					<p>
+						Capacitaciones prácticas basadas en experiencia real. Metodologías
+						aplicables de inmediato para mejorar resultados comerciales.
+					</p>
+				</div>
+
+				<div className='bg-card rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow'>
+					<h3 className='text-xl font-bold mb-3'>Valores</h3>
+					<p>
+						Empatía, sinceridad y respeto. Creo en la formación que transforma y
+						en el aprendizaje que se traduce en acción.
+					</p>
+				</div>
 			</div>
 		</div>
 	);
 }
+

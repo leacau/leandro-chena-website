@@ -7,7 +7,7 @@ import BlogManager from '@/components/admin/blog-manager';
 import EventsManager from '@/components/admin/events-manager';
 import FileManager from '@/components/admin/file-manager';
 import FirebaseStatus from '@/components/admin/firebase-status';
-import ResourcesManager from '@/components/admin/resources-manager';
+import ResourcesManager from '@/components/admin/resources-manager4';
 import { Toaster } from '@/components/ui/toaster';
 import UrlShortener from '@/components/admin/url-shortener';
 import { logoutUser } from '@/lib/firebase';

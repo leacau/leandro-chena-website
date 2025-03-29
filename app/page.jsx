@@ -12,11 +12,21 @@ export default function Home() {
 			<AboutPreview />
 			<Services />
 			{/*<Testimonials />*/}
-			<p className='text-xl text-muted-foreground mb-8 mt-8 max-w-3xl'>
-				¿Tenés alguna pregunta o te interesan mis servicios? Completá el
-				formulario y estaremos en contacto a la brevedad.
-			</p>
-			<ContactForm />
+			<section className='bg-muted/40 py-16'>
+				<div className='mx-auto max-w-7xl px-6 lg:px-8'>
+					<h2 className='text-3xl font-bold tracking-tight sm:text-4xl'>
+						Contactame
+					</h2>
+					<p className='mt-6 text-lg leading-8 text-muted-foreground mb-12'>
+						¿Tenés alguna pregunta o te interesan mis servicios? Completá el
+						formulario y estaremos en contacto a la brevedad.
+					</p>
+					<div>
+						<ContactForm />
+					</div>
+				</div>
+			</section>
+
 			<CallToAction />
 		</div>
 	);
