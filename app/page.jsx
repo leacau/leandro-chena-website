@@ -4,6 +4,8 @@ import Services from '@/components/services';
 import Testimonials from '@/components/testimonials';
 import ContactForm from '@/components/contact-form';
 import CallToAction from '@/components/call-to-action';
+import WhatsAppButton from "@/components/whatsapp-button"
+
 
 export default function Home() {
 	return (
@@ -28,6 +30,7 @@ export default function Home() {
 			</section>
 
 			<CallToAction />
+			<WhatsAppButton />
 		</div>
 	);
 }
