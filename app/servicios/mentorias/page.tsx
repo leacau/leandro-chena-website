@@ -1,8 +1,8 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2 } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Mentorias | Leandro Chena",
@@ -34,7 +34,7 @@ export default function MentoriasPage() {
           </div>
           <div className="flex gap-3">
             <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0" />
-            <p>IHabilidades de liderazgo para gestionar y motivar equipos con éxito.</p>
+            <p>Habilidades de liderazgo para gestionar y motivar equipos con éxito.</p>
           </div>
           <div className="flex gap-3">
             <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0" />
