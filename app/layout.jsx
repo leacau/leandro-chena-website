@@ -4,6 +4,7 @@ import './globals.css';
 import Footer from '@/components/footer';
 import { Inter } from 'next/font/google';
 import Navbar from '@/components/navbar';
+import Script from 'next/script';
 import { ThemeProvider } from '@/components/theme-provider';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -38,16 +39,20 @@ export default function RootLayout({ children }) {
 	return (
 		<html lang='es' suppressHydrationWarning>
 			<body className={inter.className}>
-				{/* <!-- Google tag (gtag.js) --> */}
-				<script
+				{/* Google Tag Manager */}
+				<Script
 					async
 					src='https://www.googletagmanager.com/gtag/js?id=G-P05LJZCZVB'
-				></script>
-				<script>
-					window.dataLayer = window.dataLayer || []; function gtag()
-					{dataLayer.push(arguments)}
-					gtag('js', new Date()); gtag('config', 'G-P05LJZCZVB');
-				</script>
+					strategy='afterInteractive'
+				/>
+				<Script id='google-analytics' strategy='afterInteractive'>
+					{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){ dataLayer.push(arguments); }
+          gtag('js', new Date());
+          gtag('config', 'G-P05LJZCZVB');
+        `}
+				</Script>
 
 				<ThemeProvider
 					attribute='class'
