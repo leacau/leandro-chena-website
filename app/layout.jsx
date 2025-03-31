@@ -38,6 +38,17 @@ export default function RootLayout({ children }) {
 	return (
 		<html lang='es' suppressHydrationWarning>
 			<body className={inter.className}>
+				{/* <!-- Google tag (gtag.js) --> */}
+				<script
+					async
+					src='https://www.googletagmanager.com/gtag/js?id=G-P05LJZCZVB'
+				></script>
+				<script>
+					window.dataLayer = window.dataLayer || []; function gtag()
+					{dataLayer.push(arguments)}
+					gtag('js', new Date()); gtag('config', 'G-P05LJZCZVB');
+				</script>
+
 				<ThemeProvider
 					attribute='class'
 					defaultTheme='light'
