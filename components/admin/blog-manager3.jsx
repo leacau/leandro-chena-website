@@ -601,6 +601,9 @@ export default function BlogManager() {
 												<SelectItem value='Desarrollo Personal'>
 													Desarrollo Personal
 												</SelectItem>
+												<SelectItem value='Atención al Cliente'>
+													Atención al Cliente
+												</SelectItem>
 											</SelectContent>
 										</Select>
 									</div>
@@ -609,6 +612,7 @@ export default function BlogManager() {
 										<Input
 											id='author'
 											value={author}
+											defaultValue={editingPost?.author || 'Leandro Chena'}
 											onChange={(e) => setAuthor(e.target.value)}
 											placeholder='Nombre del autor'
 										/>
@@ -724,4 +728,3 @@ export default function BlogManager() {
 		</>
 	);
 }
-
