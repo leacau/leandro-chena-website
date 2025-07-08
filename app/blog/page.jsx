@@ -13,7 +13,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { time } from 'console';
 
 export default function BlogPage() {
 	const [posts, setPosts] = useState([]);
@@ -21,8 +20,6 @@ export default function BlogPage() {
 	const [error, setError] = useState(null);
 
 	const convertTimestamp = (timestamp) => {
-		console.log(timestamp);
-
 		const meses = [
 			'Enero',
 			'Febrero',

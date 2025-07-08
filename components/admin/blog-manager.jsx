@@ -171,7 +171,7 @@ export default function BlogManager() {
 					month: 'long',
 					day: 'numeric',
 				}),
-				updatedAt: serverTimestamp(),
+				updatedAt: serverTimestamp().toDate(),
 			};
 
 			if (finalImageUrl) {
@@ -252,14 +252,10 @@ export default function BlogManager() {
 
 						// Eliminar la imagen
 						await deleteObject(imageRef);
-						console.log('Imagen eliminada correctamente de Storage');
 					} else {
 						// Si no podemos extraer la ruta, intentamos eliminar directamente
 						const imageRef = ref(storage, post.image);
 						await deleteObject(imageRef);
-						console.log(
-							'Imagen eliminada correctamente de Storage (método alternativo)'
-						);
 					}
 				} catch (imageError) {
 					console.error('Error al eliminar la imagen:', imageError);

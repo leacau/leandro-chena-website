@@ -67,8 +67,6 @@ export default async function RedirectPage({ params }) {
 			// Continuamos con la redirección aunque falle el contador
 		}
 
-		console.log('Redirigiendo a:', formattedUrl);
-
 		// Usar el componente de redirección del lado del cliente
 		return <ClientRedirect url={formattedUrl} />;
 	} catch (error) {

@@ -69,9 +69,6 @@ export default function ClientRedirect({ url }) {
 		// Agregar un temporizador para redirigir si tarda demasiado
 		const loadingTimeout = setTimeout(() => {
 			if (isLoading && !downloadUrl) {
-				console.log(
-					'Redirección tardando demasiado, volviendo a la página principal'
-				);
 				router.push('/');
 			}
 		}, 3000);
