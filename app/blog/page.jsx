@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { time } from 'console';
 
 export default function BlogPage() {
 	const [posts, setPosts] = useState([]);
@@ -20,6 +21,8 @@ export default function BlogPage() {
 	const [error, setError] = useState(null);
 
 	const convertTimestamp = (timestamp) => {
+		console.log(timestamp);
+
 		const meses = [
 			'Enero',
 			'Febrero',
@@ -149,45 +152,36 @@ export default function BlogPage() {
 				</div>
 			) : (
 				<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-					{posts.map(
-						(post) => (
-							console.log('post', convertTimestamp(post.createdAt)),
-							(
-								<Card key={post.id} className='overflow-hidden flex flex-col'>
-									<div className='h-48 relative'>
-										<img
-											src={
-												post.image || '/placeholder.svg?height=200&width=400'
-											}
-											alt={post.title}
-											className='object-cover w-full h-full'
-											onError={(e) => {
-												e.target.onerror = null;
-												e.target.src = '/placeholder.svg?height=200&width=400';
-											}}
-										/>
-									</div>
-									<CardHeader>
-										<CardTitle className='line-clamp-2'>{post.title}</CardTitle>
-										<CardDescription>
-											{convertTimestamp(post.createdAt)} |{' '}
-											{post.category || 'Sin categoría'}
-										</CardDescription>
-									</CardHeader>
-									<CardContent>
-										<p className='line-clamp-3'>{post.description}</p>
-									</CardContent>
-									<CardFooter className='mt-auto'>
-										<Button variant='link' className='p-0' asChild>
-											<Link href={`/blog/${post.slug || post.id}`}>
-												Leer más
-											</Link>
-										</Button>
-									</CardFooter>
-								</Card>
-							)
-						)
-					)}
+					{posts.map((post) => (
+						<Card key={post.id} className='overflow-hidden flex flex-col'>
+							<div className='h-48 relative'>
+								<img
+									src={post.image || '/placeholder.svg?height=200&width=400'}
+									alt={post.title}
+									className='object-cover w-full h-full'
+									onError={(e) => {
+										e.target.onerror = null;
+										e.target.src = '/placeholder.svg?height=200&width=400';
+									}}
+								/>
+							</div>
+							<CardHeader>
+								<CardTitle className='line-clamp-2'>{post.title}</CardTitle>
+								<CardDescription>
+									{convertTimestamp(post.createdAt)} |{' '}
+									{post.category || 'Sin categoría'}
+								</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<p className='line-clamp-3'>{post.description}</p>
+							</CardContent>
+							<CardFooter className='mt-auto'>
+								<Button variant='link' className='p-0' asChild>
+									<Link href={`/blog/${post.slug || post.id}`}>Leer más</Link>
+								</Button>
+							</CardFooter>
+						</Card>
+					))}
 				</div>
 			)}
 		</div>
