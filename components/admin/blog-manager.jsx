@@ -166,12 +166,7 @@ export default function BlogManager() {
 				description,
 				category,
 				author,
-				date: new Date().toLocaleDateString('es-AR', {
-					year: 'numeric',
-					month: 'long',
-					day: 'numeric',
-				}),
-				updatedAt: serverTimestamp().toDate(),
+				updatedAt: serverTimestamp(),
 			};
 
 			if (finalImageUrl) {
@@ -187,7 +182,12 @@ export default function BlogManager() {
 				});
 			} else {
 				// Crear nuevo post
-				postData.createdAt = serverTimestamp();
+				(postData.date = new Date().toLocaleDateString('es-AR', {
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric',
+				})),
+					(postData.createdAt = serverTimestamp());
 				await addDoc(collection(db, 'blogPosts'), postData);
 				toast({
 					title: 'Post creado',

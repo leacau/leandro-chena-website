@@ -19,31 +19,6 @@ export default function BlogPage() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	const convertTimestamp = (timestamp) => {
-		const meses = [
-			'Enero',
-			'Febrero',
-			'Marzo',
-			'Abril',
-			'Mayo',
-			'Junio',
-			'Julio',
-			'Agosto',
-			'Septiembre',
-			'Octubre',
-			'Noviembre',
-			'Diciembre',
-		];
-		let date = timestamp.toDate();
-		let mm = meses[date.getMonth()];
-		let dd = date.getDate();
-		let yyyy = date.getFullYear();
-
-		date = dd + ' de ' + mm + ' de ' + yyyy;
-
-		return date;
-	};
-
 	useEffect(() => {
 		const loadPosts = async () => {
 			try {
@@ -95,7 +70,6 @@ export default function BlogPage() {
 							'cachedBlogPosts',
 							JSON.stringify(loadedPosts)
 						);
-						console.log('Posts cargados desde Firestore:', loadedPosts);
 					}
 				} catch (firestoreError) {
 					console.error('Error en la consulta a Firestore:', firestoreError);
@@ -165,8 +139,7 @@ export default function BlogPage() {
 							<CardHeader>
 								<CardTitle className='line-clamp-2'>{post.title}</CardTitle>
 								<CardDescription>
-									{convertTimestamp(post.createdAt)} |{' '}
-									{post.category || 'Sin categoría'}
+									{post.date} | {post.category || 'Sin categoría'}
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
