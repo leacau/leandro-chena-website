@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,6 +12,9 @@ import { Pencil, Trash2, Upload, Loader2 } from "lucide-react"
 import { db, storage } from "@/lib/firebase"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import "react-quill/dist/quill.snow.css"
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
 
 export default function EventsManager() {
   const [events, setEvents] = useState([])
@@ -29,6 +33,31 @@ export default function EventsManager() {
   })
 
   const imageFileRef = useRef(null)
+  const quillModules = useMemo(
+    () => ({
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, 4, false] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          [{ align: [] }],
+          ["blockquote", "code-block"],
+          ["clean", "hr"],
+        ],
+        handlers: {
+          hr: function () {
+            const range = this.quill.getSelection(true)
+            if (range) {
+              this.quill.clipboard.dangerouslyPasteHTML(range.index, "<hr />")
+              this.quill.setSelection(range.index + 1, 0)
+            }
+          },
+        },
+      },
+      history: { delay: 500, maxStack: 100, userOnly: true },
+    }),
+    [],
+  )
 
   useEffect(() => {
     // Cargar eventos de Firestore
@@ -310,14 +339,22 @@ export default function EventsManager() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="longDescription">Descripción larga</Label>
-              <Textarea
-                id="longDescription"
-                name="longDescription"
-                value={currentEvent.longDescription}
-                onChange={handleInputChange}
-                placeholder="Añadí más detalles sobre el evento (visible en el detalle)"
-              />
+              <Label htmlFor="longDescription">Descripción larga (formato enriquecido)</Label>
+              <div className="border rounded-md">
+                <ReactQuill
+                  id="longDescription"
+                  theme="snow"
+                  value={currentEvent.longDescription}
+                  onChange={(value) =>
+                    setCurrentEvent((prev) => ({
+                      ...prev,
+                      longDescription: value,
+                    }))
+                  }
+                  modules={quillModules}
+                  placeholder="Añadí más detalles sobre el evento (visible en el detalle)"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -414,6 +451,13 @@ export default function EventsManager() {
           </div>
         )}
       </div>
+      <style jsx global>{`
+        .ql-toolbar .ql-hr::before {
+          content: "—";
+          display: inline-block;
+          font-weight: bold;
+        }
+      `}</style>
     </div>
   )
 }

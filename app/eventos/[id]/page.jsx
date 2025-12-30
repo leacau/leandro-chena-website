@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Calendar, Clock, Loader2, MapPin } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -10,10 +10,26 @@ import Link from 'next/link';
 import { db } from '@/lib/firebase';
 
 export default function EventoPage({ params }) {
-	const { id } = use(params);
+	const { id } = params;
 	const [isLoading, setIsLoading] = useState(true);
 	const [eventData, setEventData] = useState(null);
 	const [error, setError] = useState(null);
+	const safeEvent = useMemo(() => {
+		if (!eventData) {
+			return null;
+		}
+
+		return {
+			title: eventData.title || 'Evento sin título',
+			date: eventData.date || 'Fecha a confirmar',
+			time: eventData.time || 'Horario a confirmar',
+			location: eventData.location || 'Ubicación a confirmar',
+			description: eventData.description || '',
+			longDescription: eventData.longDescription || '',
+			content: eventData.content || '',
+			image: eventData.image || null,
+		};
+	}, [eventData]);
 
 	useEffect(() => {
 		const fetchEvent = async () => {
@@ -64,16 +80,14 @@ export default function EventoPage({ params }) {
 		);
 	}
 
-	const safeEvent = {
-		title: eventData.title || 'Evento sin título',
-		date: eventData.date || 'Fecha a confirmar',
-		time: eventData.time || 'Horario a confirmar',
-		location: eventData.location || 'Ubicación a confirmar',
-		description: eventData.description || '',
-		longDescription: eventData.longDescription || '',
-		content: eventData.content || '',
-		image: eventData.image || null,
-	};
+	if (!safeEvent) {
+		return null;
+	}
+
+	const hasRichContent = Boolean(
+		(safeEvent.longDescription && safeEvent.longDescription.trim()) ||
+			(safeEvent.content && safeEvent.content.trim())
+	);
 
 	return (
 		<div className='container mx-auto py-12 px-4'>
@@ -127,14 +141,18 @@ export default function EventoPage({ params }) {
 					</div>
 				)}
 
-				<div className='prose prose-lg max-w-none dark:prose-invert mb-8'>
-					{safeEvent.longDescription && (
-						<p>{safeEvent.longDescription}</p>
-					)}
-					{safeEvent.content && (
-						<div dangerouslySetInnerHTML={{ __html: safeEvent.content }} />
-					)}
-				</div>
+				{hasRichContent && (
+					<div className='prose prose-lg max-w-none dark:prose-invert mb-8 event-content'>
+						{safeEvent.longDescription && (
+							<div
+								dangerouslySetInnerHTML={{ __html: safeEvent.longDescription }}
+							/>
+						)}
+						{safeEvent.content && (
+							<div dangerouslySetInnerHTML={{ __html: safeEvent.content }} />
+						)}
+					</div>
+				)}
 
 				<div className='mt-12 pt-8 border-t flex flex-col sm:flex-row gap-4'>
 					<Button size='lg' className='flex-1'>
@@ -145,6 +163,24 @@ export default function EventoPage({ params }) {
 					</Button>
 				</div>
 			</div>
+			<style jsx global>{styles}</style>
 		</div>
 	);
 }
+
+// Estilos para el contenido enriquecido (similar al blog)
+const styles = `
+.event-content blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+.event-content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+`;
