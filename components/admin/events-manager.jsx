@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
-import dynamic from "next/dynamic"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,9 +11,10 @@ import { Pencil, Trash2, Upload, Loader2 } from "lucide-react"
 import { db, storage } from "@/lib/firebase"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
-import "quilljs/dist/quill.snow.css"
-
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
+import { useEditor, EditorContent } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Underline from "@tiptap/extension-underline"
+import TextAlign from "@tiptap/extension-text-align"
 
 export default function EventsManager() {
   const [events, setEvents] = useState([])
@@ -33,31 +33,23 @@ export default function EventsManager() {
   })
 
   const imageFileRef = useRef(null)
-  const quillModules = useMemo(
-    () => ({
-      toolbar: {
-        container: [
-          [{ header: [1, 2, 3, 4, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ list: "ordered" }, { list: "bullet" }],
-          [{ align: [] }],
-          ["blockquote", "code-block"],
-          ["clean", "hr"],
-        ],
-        handlers: {
-          hr: function () {
-            const range = this.quill.getSelection(true)
-            if (range) {
-              this.quill.clipboard.dangerouslyPasteHTML(range.index, "<hr />")
-              this.quill.setSelection(range.index + 1, 0)
-            }
-          },
-        },
-      },
-      history: { delay: 500, maxStack: 100, userOnly: true },
-    }),
-    [],
-  )
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3, 4] },
+        horizontalRule: true,
+      }),
+      Underline,
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+    ],
+    content: currentEvent.longDescription || "",
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML()
+      setCurrentEvent((prev) => ({ ...prev, longDescription: html }))
+    },
+  })
 
   useEffect(() => {
     // Cargar eventos de Firestore
@@ -282,6 +274,13 @@ export default function EventsManager() {
     setIsEditing(false)
   }
 
+  // Sincronizar editor cuando cambiamos de evento (editar / crear)
+  useEffect(() => {
+    if (editor && currentEvent.longDescription !== editor.getHTML()) {
+      editor.commands.setContent(currentEvent.longDescription || "")
+    }
+  }, [currentEvent.id, currentEvent.longDescription, editor])
+
   if (isLoading && events.length === 0) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -341,19 +340,81 @@ export default function EventsManager() {
             <div className="space-y-2">
               <Label htmlFor="longDescription">Descripción larga (formato enriquecido)</Label>
               <div className="border rounded-md">
-                <ReactQuill
-                  id="longDescription"
-                  theme="snow"
-                  value={currentEvent.longDescription}
-                  onChange={(value) =>
-                    setCurrentEvent((prev) => ({
-                      ...prev,
-                      longDescription: value,
-                    }))
-                  }
-                  modules={quillModules}
-                  placeholder="Añadí más detalles sobre el evento (visible en el detalle)"
-                />
+                <div className="flex flex-wrap gap-2 border-b px-2 py-2 bg-muted/60">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor?.chain().focus().toggleBold().run()}
+                    disabled={!editor}
+                  >
+                    Negrita
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor?.chain().focus().toggleItalic().run()}
+                    disabled={!editor}
+                  >
+                    Itálica
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                    disabled={!editor}
+                  >
+                    Subrayado
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor?.chain().focus().toggleStrike().run()}
+                    disabled={!editor}
+                  >
+                    Tachado
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                    disabled={!editor}
+                  >
+                    Lista
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+                    disabled={!editor}
+                  >
+                    Lista ordenada
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+                    disabled={!editor}
+                  >
+                    Línea
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+                    disabled={!editor}
+                  >
+                    Cita
+                  </Button>
+                </div>
+                <EditorContent editor={editor} className="prose prose-sm max-w-none p-3 min-h-[200px]" />
               </div>
             </div>
 
@@ -452,10 +513,18 @@ export default function EventsManager() {
         )}
       </div>
       <style jsx global>{`
-        .ql-toolbar .ql-hr::before {
-          content: "—";
-          display: inline-block;
-          font-weight: bold;
+        .ProseMirror {
+          outline: none;
+        }
+        .ProseMirror hr {
+          border: none;
+          border-top: 1px solid var(--border);
+          margin: 1.5rem 0;
+        }
+        .ProseMirror blockquote {
+          border-left: 4px solid var(--primary);
+          padding-left: 1rem;
+          color: var(--muted-foreground);
         }
       `}</style>
     </div>
