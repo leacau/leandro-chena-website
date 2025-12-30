@@ -20,6 +20,7 @@ export default function EventsManager() {
     id: null,
     title: "",
     description: "",
+    longDescription: "",
     date: "",
     time: "",
     location: "",
@@ -242,6 +243,7 @@ export default function EventsManager() {
       id: null,
       title: "",
       description: "",
+      longDescription: "",
       date: "",
       time: "",
       location: "",
@@ -305,6 +307,17 @@ export default function EventsManager() {
                   required
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="longDescription">Descripción larga</Label>
+              <Textarea
+                id="longDescription"
+                name="longDescription"
+                value={currentEvent.longDescription}
+                onChange={handleInputChange}
+                placeholder="Añadí más detalles sobre el evento (visible en el detalle)"
+              />
             </div>
 
             <div className="space-y-2">
@@ -404,4 +417,3 @@ export default function EventsManager() {
     </div>
   )
 }
-
