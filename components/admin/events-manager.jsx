@@ -12,7 +12,7 @@ import { Pencil, Trash2, Upload, Loader2 } from "lucide-react"
 import { db, storage } from "@/lib/firebase"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
-import "react-quill/dist/quill.snow.css"
+import "quilljs/dist/quill.snow.css"
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
 
