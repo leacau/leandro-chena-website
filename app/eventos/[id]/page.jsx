@@ -6,15 +6,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { notFound } from 'next/navigation';
-import { use } from 'react';
 
 // Forzar que la página sea dinámica para que se regenere en cada solicitud
 export const dynamic = 'force-dynamic';
 
 export default async function EventoPage({ params }) {
-	// Usar React.use() para desenvolver los parámetros
-	const unwrappedParams = use(params);
-	const { id } = unwrappedParams;
+	const { id } = params;
 
 	try {
 		// Buscar el evento en Firestore
@@ -101,4 +98,3 @@ export default async function EventoPage({ params }) {
 		return notFound();
 	}
 }
-
