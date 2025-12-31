@@ -182,7 +182,7 @@ export default function EventoPage({ params }) {
 				<div className='mt-12 pt-8 border-t flex flex-col sm:flex-row gap-4'>
 					<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 						<DialogTrigger asChild>
-							<Button size='lg' className='flex-1'>
+							<Button size='lg' className='flex-1' type='button'>
 								Inscribirme
 							</Button>
 						</DialogTrigger>
@@ -217,48 +217,51 @@ export default function EventoPage({ params }) {
 										id='name'
 										name='name'
 										value={formData.name}
-										onChange={(e) =>
-											setFormData((prev) => ({ ...prev, name: e.target.value }))
-										}
-										placeholder='Ej: Juan Pérez'
-										required
-									/>
-								</div>
+											onChange={(e) =>
+												setFormData((prev) => ({ ...prev, name: e.target.value }))
+											}
+											placeholder='Ej: Juan Pérez'
+											required
+											autoComplete='name'
+										/>
+									</div>
 
-								<div className='space-y-2'>
-									<Label htmlFor='email'>Email</Label>
+									<div className='space-y-2'>
+										<Label htmlFor='email'>Email</Label>
 									<Input
 										id='email'
 										name='email'
 										type='email'
 										value={formData.email}
-										onChange={(e) =>
-											setFormData((prev) => ({ ...prev, email: e.target.value }))
-										}
-										placeholder='tu@correo.com'
-										required
-									/>
-								</div>
+											onChange={(e) =>
+												setFormData((prev) => ({ ...prev, email: e.target.value }))
+											}
+											placeholder='tu@correo.com'
+											required
+											autoComplete='email'
+										/>
+									</div>
 
-								<div className='space-y-2'>
-									<Label htmlFor='whatsapp'>WhatsApp (opcional)</Label>
+									<div className='space-y-2'>
+										<Label htmlFor='whatsapp'>WhatsApp (opcional)</Label>
 									<Input
 										id='whatsapp'
 										name='whatsapp'
 										inputMode='tel'
 										value={formData.whatsapp}
-										onChange={(e) =>
-											setFormData((prev) => ({
-												...prev,
-												whatsapp: e.target.value,
-											}))
-										}
-										placeholder='54911XXXXXXXX'
-									/>
-								</div>
+											onChange={(e) =>
+												setFormData((prev) => ({
+													...prev,
+													whatsapp: e.target.value,
+												}))
+											}
+											placeholder='54911XXXXXXXX'
+											autoComplete='tel'
+										/>
+									</div>
 
-								<DialogFooter className='pt-2'>
-									<Button type='submit' disabled={isSubmitting} className='w-full'>
+									<DialogFooter className='pt-2'>
+										<Button type='submit' disabled={isSubmitting} className='w-full'>
 										{isSubmitting ? 'Enviando...' : 'Enviar inscripción'}
 									</Button>
 								</DialogFooter>
