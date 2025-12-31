@@ -4,17 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Calendar, Clock, Loader2, MapPin } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { EventSignupDialog } from '@/components/event-signup-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -23,21 +13,13 @@ export default function EventoPage({ params }) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [eventData, setEventData] = useState(null);
 	const [error, setError] = useState(null);
-	const [isDialogOpen, setIsDialogOpen] = useState(false);
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [formData, setFormData] = useState({
-		name: '',
-		email: '',
-		whatsapp: '',
-	});
-	const [feedback, setFeedback] = useState('');
-	const [submitError, setSubmitError] = useState('');
 	const safeEvent = useMemo(() => {
 		if (!eventData) {
 			return null;
 		}
 
 		return {
+			id: eventData.id,
 			title: eventData.title || 'Evento sin título',
 			date: eventData.date || 'Fecha a confirmar',
 			time: eventData.time || 'Horario a confirmar',
@@ -80,11 +62,11 @@ export default function EventoPage({ params }) {
 	}, [id]);
 
 	if (isLoading) {
-		return (
-			<div className='container mx-auto py-12 flex justify-center items-center'>
-				<Loader2 className='h-8 w-8 animate-spin text-primary' />
-				<span className='ml-2'>Cargando evento...</span>
-			</div>
+			return (
+				<div className='container mx-auto py-12 flex justify-center items-center'>
+					<Loader2 className='h-8 w-8 animate-spin text-primary' />
+					<span className='ml-2'>Cargando evento...</span>
+				</div>
 		);
 	}
 
@@ -181,119 +163,12 @@ export default function EventoPage({ params }) {
 				)}
 
 				<div className='mt-12 pt-8 border-t flex flex-col sm:flex-row gap-4'>
-					<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-						<DialogTrigger asChild>
-							<Button size='lg' className='flex-1' type='button'>
-								Inscribirme
-							</Button>
-						</DialogTrigger>
-						<DialogContent>
-							<form
-								className='space-y-4'
-								onSubmit={async (e) => {
-									e.preventDefault();
-									setIsSubmitting(true);
-									setFeedback('');
-									setSubmitError('');
-									try {
-										const [{ db }, { addDoc, collection, serverTimestamp }] =
-											await Promise.all([
-												import('@/lib/firebase'),
-												import('firebase/firestore'),
-											]);
-
-										await addDoc(collection(db, 'eventSignups'), {
-											eventId: safeEvent.id,
-											name: formData.name.trim(),
-											email: formData.email.trim(),
-											whatsapp: formData.whatsapp.trim(),
-											createdAt: serverTimestamp(),
-										});
-
-										setFeedback(
-											'Gracias por inscribirte. Te avisaremos sobre futuras fechas.'
-										);
-										setFormData({ name: '', email: '', whatsapp: '' });
-										setIsDialogOpen(false);
-									} catch (err) {
-										console.error('Error al registrar inscripción', err);
-										setSubmitError(
-											'Ocurrió un problema al guardar tu inscripción. Intentá nuevamente.'
-										);
-									} finally {
-										setIsSubmitting(false);
-									}
-								}}
-							>
-								<DialogHeader>
-									<DialogTitle>Inscribirme al evento</DialogTitle>
-									<DialogDescription>
-										Usaremos estos datos para enviarte recordatorios de próximas
-										fechas y novedades del evento.
-									</DialogDescription>
-								</DialogHeader>
-
-								<div className='space-y-2'>
-									<Label htmlFor='name'>Nombre completo</Label>
-									<Input
-										id='name'
-										name='name'
-										value={formData.name}
-											onChange={(e) =>
-												setFormData((prev) => ({ ...prev, name: e.target.value }))
-											}
-											placeholder='Ej: Juan Pérez'
-											required
-											autoComplete='name'
-										/>
-									</div>
-
-									<div className='space-y-2'>
-										<Label htmlFor='email'>Email</Label>
-									<Input
-										id='email'
-										name='email'
-										type='email'
-										value={formData.email}
-											onChange={(e) =>
-												setFormData((prev) => ({ ...prev, email: e.target.value }))
-											}
-											placeholder='tu@correo.com'
-											required
-											autoComplete='email'
-										/>
-									</div>
-
-									<div className='space-y-2'>
-										<Label htmlFor='whatsapp'>WhatsApp (opcional)</Label>
-										<Input
-											id='whatsapp'
-											name='whatsapp'
-											inputMode='tel'
-										value={formData.whatsapp}
-											onChange={(e) =>
-												setFormData((prev) => ({
-													...prev,
-													whatsapp: e.target.value,
-												}))
-											}
-											placeholder='54911XXXXXXXX'
-											autoComplete='tel'
-										/>
-									</div>
-
-								{submitError && (
-									<p className='text-sm text-destructive'>{submitError}</p>
-								)}
-
-								<DialogFooter className='pt-2'>
-									<Button type='submit' disabled={isSubmitting} className='w-full'>
-										{isSubmitting ? 'Enviando...' : 'Enviar inscripción'}
-									</Button>
-								</DialogFooter>
-							</form>
-						</DialogContent>
-					</Dialog>
+					<EventSignupDialog
+						eventId={safeEvent.id}
+						triggerClassName='flex-1'
+						triggerSize='lg'
+						fullWidth
+					/>
 					<Button variant='outline' size='lg' asChild className='flex-1'>
 						<Link href='/eventos'>Ver otros eventos</Link>
 					</Button>

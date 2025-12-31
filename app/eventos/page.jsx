@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin } from "lucide-react"
+import { EventSignupDialog } from "@/components/event-signup-dialog"
 import { db } from "@/lib/firebase"
 import { collection, getDocs } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
@@ -94,9 +95,12 @@ export default function EventosPage() {
                 <Button asChild className="w-full sm:w-auto">
                   <Link href={`/eventos/${event.id}`}>Ver detalles</Link>
                 </Button>
-                <Button variant="outline" className="w-full sm:w-auto">
-                  Inscribirme
-                </Button>
+                <EventSignupDialog
+                  eventId={event.id}
+                  triggerVariant="outline"
+                  triggerSize="default"
+                  triggerClassName="w-full sm:w-auto"
+                />
               </CardFooter>
             </Card>
           ))}
@@ -105,4 +109,3 @@ export default function EventosPage() {
     </div>
   )
 }
-
