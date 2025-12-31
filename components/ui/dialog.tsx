@@ -18,8 +18,8 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      // z alto para evitar quedar detrás de headers/overlays del layout
-      "fixed inset-0 z-[9999] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // Opaque + por encima de todo
+      "fixed inset-0 z-[9999] bg-black/70 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -33,22 +33,27 @@ const DialogContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
+
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
         /**
-         * Centrado ROBUSTO:
-         * - No depende de left/top 50% + translate (que puede “irse” si hay transforms en ancestros).
-         * - Usa inset-0 + m-auto para quedar siempre dentro del viewport.
-         * - Limita altura y habilita scroll interno para contenido largo.
+         * Posicionamiento pedido:
+         * - Centrado horizontal: left-1/2 + -translate-x-1/2
+         * - Pegado arriba: top-6 (ajustable)
+         * - No usamos translateY (evita “irse” por layouts con transform)
+         * - Altura máxima + scroll interno
          */
-        "fixed inset-0 z-[10000] m-auto grid w-full max-w-lg h-fit max-h-[85vh] overflow-auto gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
+        "fixed top-6 left-1/2 z-[10000] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 grid gap-4 border bg-background p-6 shadow-lg outline-none max-h-[calc(100vh-3rem)] overflow-auto sm:rounded-lg",
+        // Animaciones suaves
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
