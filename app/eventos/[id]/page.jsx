@@ -2,12 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Calendar, Clock, Loader2, MapPin } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { db } from '@/lib/firebase';
 
 export default function EventoPage({ params }) {
 	const { id } = params;
@@ -34,6 +32,10 @@ export default function EventoPage({ params }) {
 	useEffect(() => {
 		const fetchEvent = async () => {
 			try {
+				const [{ db }, { doc, getDoc }] = await Promise.all([
+					import('@/lib/firebase'),
+					import('firebase/firestore'),
+				]);
 				const eventRef = doc(db, 'events', id);
 				const eventSnap = await getDoc(eventRef);
 
