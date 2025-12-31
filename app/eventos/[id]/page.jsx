@@ -31,6 +31,7 @@ export default function EventoPage({ params }) {
 		whatsapp: '',
 	});
 	const [feedback, setFeedback] = useState('');
+	const [submitError, setSubmitError] = useState('');
 	const safeEvent = useMemo(() => {
 		if (!eventData) {
 			return null;
@@ -189,18 +190,39 @@ export default function EventoPage({ params }) {
 						<DialogContent>
 							<form
 								className='space-y-4'
-								onSubmit={(e) => {
+								onSubmit={async (e) => {
 									e.preventDefault();
 									setIsSubmitting(true);
 									setFeedback('');
-									setTimeout(() => {
+									setSubmitError('');
+									try {
+										const [{ db }, { addDoc, collection, serverTimestamp }] =
+											await Promise.all([
+												import('@/lib/firebase'),
+												import('firebase/firestore'),
+											]);
+
+										await addDoc(collection(db, 'eventSignups'), {
+											eventId: safeEvent.id,
+											name: formData.name.trim(),
+											email: formData.email.trim(),
+											whatsapp: formData.whatsapp.trim(),
+											createdAt: serverTimestamp(),
+										});
+
 										setFeedback(
 											'Gracias por inscribirte. Te avisaremos sobre futuras fechas.'
 										);
-										setIsSubmitting(false);
-										setIsDialogOpen(false);
 										setFormData({ name: '', email: '', whatsapp: '' });
-									}, 400);
+										setIsDialogOpen(false);
+									} catch (err) {
+										console.error('Error al registrar inscripción', err);
+										setSubmitError(
+											'Ocurrió un problema al guardar tu inscripción. Intentá nuevamente.'
+										);
+									} finally {
+										setIsSubmitting(false);
+									}
 								}}
 							>
 								<DialogHeader>
@@ -244,10 +266,10 @@ export default function EventoPage({ params }) {
 
 									<div className='space-y-2'>
 										<Label htmlFor='whatsapp'>WhatsApp (opcional)</Label>
-									<Input
-										id='whatsapp'
-										name='whatsapp'
-										inputMode='tel'
+										<Input
+											id='whatsapp'
+											name='whatsapp'
+											inputMode='tel'
 										value={formData.whatsapp}
 											onChange={(e) =>
 												setFormData((prev) => ({
@@ -260,8 +282,12 @@ export default function EventoPage({ params }) {
 										/>
 									</div>
 
-									<DialogFooter className='pt-2'>
-										<Button type='submit' disabled={isSubmitting} className='w-full'>
+								{submitError && (
+									<p className='text-sm text-destructive'>{submitError}</p>
+								)}
+
+								<DialogFooter className='pt-2'>
+									<Button type='submit' disabled={isSubmitting} className='w-full'>
 										{isSubmitting ? 'Enviando...' : 'Enviar inscripción'}
 									</Button>
 								</DialogFooter>

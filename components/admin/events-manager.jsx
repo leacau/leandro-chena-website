@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { toast } from "@/components/ui/use-toast"
 import { Pencil, Trash2, Upload, Loader2 } from "lucide-react"
 import { db, storage } from "@/lib/firebase"
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
@@ -20,6 +20,7 @@ export default function EventsManager() {
   const [events, setEvents] = useState([])
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [signupsByEvent, setSignupsByEvent] = useState({})
   const [currentEvent, setCurrentEvent] = useState({
     id: null,
     title: "",
@@ -110,6 +111,7 @@ export default function EventsManager() {
     }
 
     loadEvents()
+    loadSignups()
   }, [])
 
   const handleInputChange = (e) => {
@@ -118,6 +120,27 @@ export default function EventsManager() {
       ...currentEvent,
       [name]: value,
     })
+  }
+
+  const loadSignups = async () => {
+    try {
+      const signupsSnapshot = await getDocs(query(collection(db, "eventSignups"), orderBy("createdAt", "desc")))
+      const grouped = {}
+      signupsSnapshot.forEach((doc) => {
+        const data = doc.data()
+        const eventId = data.eventId || "sin-evento"
+        if (!grouped[eventId]) grouped[eventId] = []
+        grouped[eventId].push({ id: doc.id, ...data })
+      })
+      setSignupsByEvent(grouped)
+    } catch (error) {
+      console.error("Error loading signups:", error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las inscripciones.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleImageUpload = async (e) => {
@@ -516,6 +539,51 @@ export default function EventsManager() {
                 </CardFooter>
               </Card>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold">Inscripciones por evento</h2>
+        {events.length === 0 ? (
+          <p className="text-muted-foreground">No hay eventos aún.</p>
+        ) : (
+          <div className="space-y-3">
+            {events.map((event) => {
+              const signups = signupsByEvent[event.id] || []
+              return (
+                <Card key={`signups-${event.id}`}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {event.title}{" "}
+                      <span className="text-sm text-muted-foreground">({signups.length} inscripciones)</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {signups.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Aún no hay inscriptos.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {signups.map((signup) => (
+                          <div key={signup.id} className="border rounded-md p-3">
+                            <p className="font-medium">{signup.name || "Sin nombre"}</p>
+                            <p className="text-sm text-muted-foreground break-all">{signup.email}</p>
+                            {signup.whatsapp && (
+                              <p className="text-sm text-muted-foreground">WhatsApp: {signup.whatsapp}</p>
+                            )}
+                            {signup.createdAt?.toDate && (
+                              <p className="text-xs text-muted-foreground">
+                                Registrado el {signup.createdAt.toDate().toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
       </div>
