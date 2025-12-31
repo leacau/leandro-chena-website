@@ -4,6 +4,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Calendar, Clock, Loader2, MapPin } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -12,6 +23,14 @@ export default function EventoPage({ params }) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [eventData, setEventData] = useState(null);
 	const [error, setError] = useState(null);
+	const [isDialogOpen, setIsDialogOpen] = useState(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [formData, setFormData] = useState({
+		name: '',
+		email: '',
+		whatsapp: '',
+	});
+	const [feedback, setFeedback] = useState('');
 	const safeEvent = useMemo(() => {
 		if (!eventData) {
 			return null;
@@ -161,9 +180,91 @@ export default function EventoPage({ params }) {
 				)}
 
 				<div className='mt-12 pt-8 border-t flex flex-col sm:flex-row gap-4'>
-					<Button size='lg' className='flex-1'>
-						Inscribirme
-					</Button>
+					<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+						<DialogTrigger asChild>
+							<Button size='lg' className='flex-1'>
+								Inscribirme
+							</Button>
+						</DialogTrigger>
+						<DialogContent>
+							<form
+								className='space-y-4'
+								onSubmit={(e) => {
+									e.preventDefault();
+									setIsSubmitting(true);
+									setFeedback('');
+									setTimeout(() => {
+										setFeedback(
+											'Gracias por inscribirte. Te avisaremos sobre futuras fechas.'
+										);
+										setIsSubmitting(false);
+										setIsDialogOpen(false);
+										setFormData({ name: '', email: '', whatsapp: '' });
+									}, 400);
+								}}
+							>
+								<DialogHeader>
+									<DialogTitle>Inscribirme al evento</DialogTitle>
+									<DialogDescription>
+										Usaremos estos datos para enviarte recordatorios de próximas
+										fechas y novedades del evento.
+									</DialogDescription>
+								</DialogHeader>
+
+								<div className='space-y-2'>
+									<Label htmlFor='name'>Nombre completo</Label>
+									<Input
+										id='name'
+										name='name'
+										value={formData.name}
+										onChange={(e) =>
+											setFormData((prev) => ({ ...prev, name: e.target.value }))
+										}
+										placeholder='Ej: Juan Pérez'
+										required
+									/>
+								</div>
+
+								<div className='space-y-2'>
+									<Label htmlFor='email'>Email</Label>
+									<Input
+										id='email'
+										name='email'
+										type='email'
+										value={formData.email}
+										onChange={(e) =>
+											setFormData((prev) => ({ ...prev, email: e.target.value }))
+										}
+										placeholder='tu@correo.com'
+										required
+									/>
+								</div>
+
+								<div className='space-y-2'>
+									<Label htmlFor='whatsapp'>WhatsApp (opcional)</Label>
+									<Input
+										id='whatsapp'
+										name='whatsapp'
+										inputMode='tel'
+										value={formData.whatsapp}
+										onChange={(e) =>
+											setFormData((prev) => ({
+												...prev,
+												whatsapp: e.target.value,
+											}))
+										}
+										placeholder='54911XXXXXXXX'
+									/>
+								</div>
+
+								<DialogFooter className='pt-2'>
+									<Button type='submit' disabled={isSubmitting} className='w-full'>
+										{isSubmitting ? 'Enviando...' : 'Enviar inscripción'}
+									</Button>
+								</DialogFooter>
+							</form>
+						</DialogContent>
+					</Dialog>
 					<Button variant='outline' size='lg' asChild className='flex-1'>
 						<Link href='/eventos'>Ver otros eventos</Link>
 					</Button>
