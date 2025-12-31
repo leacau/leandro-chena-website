@@ -38,6 +38,8 @@ export default function EventsManager() {
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4] },
         horizontalRule: true,
+        bulletList: { keepAttributes: true, keepMarks: true },
+        orderedList: { keepAttributes: true, keepMarks: true },
       }),
       Underline,
       TextAlign.configure({
@@ -48,6 +50,11 @@ export default function EventsManager() {
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
       setCurrentEvent((prev) => ({ ...prev, longDescription: html }))
+    },
+    editorProps: {
+      attributes: {
+        class: "min-h-[200px] px-3 py-2 focus:outline-none",
+      },
     },
   })
 
@@ -414,7 +421,7 @@ export default function EventsManager() {
                     Cita
                   </Button>
                 </div>
-                <EditorContent editor={editor} className="prose prose-sm max-w-none p-3 min-h-[200px]" />
+                <EditorContent editor={editor} className="prose prose-sm max-w-none" />
               </div>
             </div>
 
@@ -516,10 +523,21 @@ export default function EventsManager() {
         .ProseMirror {
           outline: none;
         }
+        .ProseMirror ul {
+          list-style: disc;
+          padding-left: 1.5rem;
+          margin: 0.75rem 0;
+        }
+        .ProseMirror ol {
+          list-style: decimal;
+          padding-left: 1.5rem;
+          margin: 0.75rem 0;
+        }
         .ProseMirror hr {
           border: none;
-          border-top: 1px solid var(--border);
-          margin: 1.5rem 0;
+          border-top: 2px solid #000;
+          width: 60%;
+          margin: 1.5rem auto;
         }
         .ProseMirror blockquote {
           border-left: 4px solid var(--primary);

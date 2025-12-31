@@ -102,21 +102,25 @@ export default function EventoPage({ params }) {
 					Volver a eventos
 				</Link>
 
-				{safeEvent.image && (
-					<div className='w-full h-64 md:h-96 mb-8 rounded-lg overflow-hidden'>
-						<Image
-							src={safeEvent.image || '/placeholder.svg?height=400&width=800'}
-							alt={safeEvent.title}
-							fill
-							className='object-cover'
-							priority
-							onError={(e) => {
-								e.target.onerror = null;
-								e.target.src = '/placeholder.svg?height=400&width=800';
-							}}
-						/>
-					</div>
-				)}
+					{safeEvent.image && (
+						<div className='w-full mb-8 rounded-lg overflow-hidden border'>
+							<div className='relative aspect-[16/9]'>
+								<Image
+									src={
+										safeEvent.image || '/placeholder.svg?height=720&width=1280'
+									}
+									alt={safeEvent.title}
+									fill
+									className='object-cover'
+									priority
+									onError={(e) => {
+										e.target.onerror = null;
+										e.target.src = '/placeholder.svg?height=720&width=1280';
+									}}
+								/>
+							</div>
+						</div>
+					)}
 
 				<h1 className='text-3xl md:text-4xl font-bold mb-4'>
 					{safeEvent.title}
@@ -180,9 +184,20 @@ const styles = `
   font-style: italic;
   color: var(--muted-foreground);
 }
-.event-content hr {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 2rem 0;
-}
+	.event-content hr {
+	  border: none;
+	  border-top: 2px solid #000;
+	  width: 60%;
+	  margin: 2rem auto;
+	}
+	.event-content ul {
+	  list-style: disc;
+	  padding-left: 1.5rem;
+	  margin: 1rem 0;
+	}
+	.event-content ol {
+	  list-style: decimal;
+	  padding-left: 1.5rem;
+	  margin: 1rem 0;
+	}
 `;
