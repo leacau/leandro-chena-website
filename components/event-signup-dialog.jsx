@@ -67,6 +67,7 @@ export function EventSignupDialog({
 					variant={triggerVariant}
 					size={triggerSize}
 					className={fullWidth ? `w-full ${triggerClassName}` : triggerClassName}
+					onClick={() => console.log("CLICK trigger inscribirme", eventId)}
 				>
 					{triggerLabel}
 				</Button>
