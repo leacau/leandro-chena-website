@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-import { Pencil, Trash2, Upload, Loader2, Copy, Check, X, Save } from "lucide-react"
+import { Pencil, Trash2, Upload, Loader2, Copy, Check, X, Save, Plus } from "lucide-react"
 import { db, storage } from "@/lib/firebase"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, writeBatch } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
@@ -131,7 +131,26 @@ export default function EventsManager() {
     }
   }
 
-  // --- NUEVAS FUNCIONES PARA GESTIÓN DE INSCRIPCIONES ---
+  // --- NUEVAS FUNCIONES PARA GESTIÓN DE INSCRIPCIONES Y NOTIFICACIONES DINÁMICAS ---
+
+  const handleAddNotificationColumn = async (event) => {
+    const currentCount = event.notificationCount || 2;
+    const newCount = currentCount + 1;
+
+    try {
+        await updateDoc(doc(db, "events", event.id), {
+            notificationCount: newCount
+        });
+
+        // Actualizar estado local
+        setEvents(prev => prev.map(e => e.id === event.id ? { ...e, notificationCount: newCount } : e));
+        
+        toast({ title: "Columna de notificación agregada" });
+    } catch (error) {
+        console.error("Error adding notification column:", error);
+        toast({ title: "Error", description: "No se pudo agregar la columna.", variant: "destructive" });
+    }
+  }
 
   const handleCopyEmails = (eventId) => {
     const signups = signupsByEvent[eventId] || []
@@ -199,8 +218,8 @@ export default function EventsManager() {
   }
 
   const toggleNotification = async (signupId, eventId, notifNum, currentValue) => {
-    const fieldName = `notified${notifNum}` // notified1 o notified2
-    const dateFieldName = `notified${notifNum}At` // notified1At o notified2At
+    const fieldName = `notified${notifNum}` // notified1, notified2, notified3...
+    const dateFieldName = `notified${notifNum}At`
     const newValue = !currentValue
     const now = new Date()
 
@@ -354,6 +373,7 @@ export default function EventsManager() {
         const eventData = {
           ...currentEvent,
           slug,
+          notificationCount: 2, // Valor por defecto al crear
         }
         delete eventData.id // Eliminar id nulo antes de guardar
 
@@ -496,7 +516,7 @@ export default function EventsManager() {
               <Label htmlFor="longDescription">Descripción larga (formato enriquecido)</Label>
               <div className="border rounded-md">
                 <div className="flex flex-wrap gap-2 border-b px-2 py-2 bg-muted/60">
-                   {/* Botones del editor (sin cambios) */}
+                   {/* Botones del editor */}
                   <Button type="button" variant="outline" size="sm" onClick={() => editor?.chain().focus().toggleBold().run()} disabled={!editor}>Negrita</Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => editor?.chain().focus().toggleItalic().run()} disabled={!editor}>Itálica</Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => editor?.chain().focus().toggleUnderline().run()} disabled={!editor}>Subrayado</Button>
@@ -613,21 +633,29 @@ export default function EventsManager() {
           <div className="space-y-3">
             {events.map((event) => {
               const signups = signupsByEvent[event.id] || []
-              const allNotif1 = signups.length > 0 && signups.every(s => s.notified1)
-              const allNotif2 = signups.length > 0 && signups.every(s => s.notified2)
+              // Determinar cantidad de notificaciones (por defecto 2 si no existe)
+              const notificationCount = event.notificationCount || 2;
+              // Crear array de indices [1, 2, ..., n]
+              const notificationIndices = Array.from({ length: notificationCount }, (_, i) => i + 1);
 
               return (
-                <Card key={`signups-${event.id}`}>
+                <Card key={`signups-${event.id}`} className="overflow-hidden">
                   <CardHeader>
                     <div className="flex justify-between items-center">
                         <CardTitle className="text-lg">
                         {event.title}{" "}
                         <span className="text-sm text-muted-foreground">({signups.length} inscripciones)</span>
                         </CardTitle>
-                        <Button variant="outline" size="sm" onClick={() => handleCopyEmails(event.id)}>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copiar Emails
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleAddNotificationColumn(event)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Nueva Notif.
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleCopyEmails(event.id)}>
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copiar Emails
+                            </Button>
+                        </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -635,110 +663,112 @@ export default function EventsManager() {
                       <p className="text-sm text-muted-foreground">Aún no hay inscriptos.</p>
                     ) : (
                       <div className="space-y-3">
-                         {/* Encabezado masivo */}
-                        <div className="grid grid-cols-12 gap-2 pb-2 mb-2 border-b text-sm font-bold text-muted-foreground">
-                            <div className="col-span-5 md:col-span-6">Usuario</div>
-                            <div className="col-span-3 md:col-span-2 flex items-center justify-center gap-1">
-                                <Checkbox 
-                                    checked={allNotif1} 
-                                    onCheckedChange={(checked) => toggleAllNotifications(event.id, 1, checked)}
-                                /> Notif 1
-                            </div>
-                            <div className="col-span-3 md:col-span-2 flex items-center justify-center gap-1">
-                                <Checkbox 
-                                    checked={allNotif2} 
-                                    onCheckedChange={(checked) => toggleAllNotifications(event.id, 2, checked)}
-                                /> Notif 2
-                            </div>
-                            <div className="col-span-1 md:col-span-2 text-right">Acciones</div>
-                        </div>
+                         {/* Encabezado Grid Dinámico */}
+                         {/* Ajustamos las columnas según la cantidad de notificaciones. 
+                             Si hay muchas, permitimos scroll horizontal dentro del card */}
+                        <div className="w-full overflow-x-auto">
+                            <div className="min-w-[800px]">
+                                <div className="flex gap-2 pb-2 mb-2 border-b text-sm font-bold text-muted-foreground items-center">
+                                    <div className="w-[300px] flex-shrink-0">Usuario</div>
+                                    
+                                    {/* Columnas dinámicas de notificación (Headers) */}
+                                    {notificationIndices.map(index => {
+                                        const allChecked = signups.length > 0 && signups.every(s => s[`notified${index}`]);
+                                        return (
+                                            <div key={index} className="w-[100px] flex-shrink-0 flex items-center justify-center gap-1 flex-col sm:flex-row">
+                                                <Checkbox 
+                                                    checked={allChecked} 
+                                                    onCheckedChange={(checked) => toggleAllNotifications(event.id, index, checked)}
+                                                /> 
+                                                <span className="text-xs">Notif {index}</span>
+                                            </div>
+                                        );
+                                    })}
 
-                        {signups.map((signup) => (
-                          <div key={signup.id} className="grid grid-cols-12 gap-2 items-center border rounded-md p-3">
-                            {/* Datos del Usuario / Modo Edición */}
-                            <div className="col-span-5 md:col-span-6">
-                                {editingSignupId === signup.id ? (
-                                    <div className="space-y-2">
-                                        <Input 
-                                            value={editingSignupData.name} 
-                                            onChange={(e) => setEditingSignupData({...editingSignupData, name: e.target.value})} 
-                                            placeholder="Nombre"
-                                            className="h-8"
-                                        />
-                                        <Input 
-                                            value={editingSignupData.email} 
-                                            onChange={(e) => setEditingSignupData({...editingSignupData, email: e.target.value})} 
-                                            placeholder="Email"
-                                            className="h-8"
-                                        />
-                                        <Input 
-                                            value={editingSignupData.whatsapp} 
-                                            onChange={(e) => setEditingSignupData({...editingSignupData, whatsapp: e.target.value})} 
-                                            placeholder="WhatsApp"
-                                            className="h-8"
-                                        />
-                                    </div>
-                                ) : (
-                                    <>
-                                        <p className="font-medium">{signup.name || "Sin nombre"}</p>
-                                        <p className="text-sm text-muted-foreground break-all">{signup.email}</p>
-                                        {signup.whatsapp && (
-                                            <p className="text-sm text-muted-foreground">WP: {signup.whatsapp}</p>
+                                    <div className="flex-grow text-right">Acciones</div>
+                                </div>
+
+                                {signups.map((signup) => (
+                                <div key={signup.id} className="flex gap-2 items-center border rounded-md p-3 mb-2">
+                                    {/* Datos del Usuario / Modo Edición */}
+                                    <div className="w-[300px] flex-shrink-0">
+                                        {editingSignupId === signup.id ? (
+                                            <div className="space-y-2">
+                                                <Input 
+                                                    value={editingSignupData.name} 
+                                                    onChange={(e) => setEditingSignupData({...editingSignupData, name: e.target.value})} 
+                                                    placeholder="Nombre"
+                                                    className="h-8"
+                                                />
+                                                <Input 
+                                                    value={editingSignupData.email} 
+                                                    onChange={(e) => setEditingSignupData({...editingSignupData, email: e.target.value})} 
+                                                    placeholder="Email"
+                                                    className="h-8"
+                                                />
+                                                <Input 
+                                                    value={editingSignupData.whatsapp} 
+                                                    onChange={(e) => setEditingSignupData({...editingSignupData, whatsapp: e.target.value})} 
+                                                    placeholder="WhatsApp"
+                                                    className="h-8"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <p className="font-medium">{signup.name || "Sin nombre"}</p>
+                                                <p className="text-sm text-muted-foreground break-all">{signup.email}</p>
+                                                {signup.whatsapp && (
+                                                    <p className="text-sm text-muted-foreground">WP: {signup.whatsapp}</p>
+                                                )}
+                                            </>
                                         )}
-                                    </>
-                                )}
-                            </div>
+                                    </div>
 
-                            {/* Checkbox Notificación 1 */}
-                            <div className="col-span-3 md:col-span-2 flex flex-col items-center justify-center">
-                                <Checkbox 
-                                    checked={signup.notified1} 
-                                    onCheckedChange={() => toggleNotification(signup.id, event.id, 1, signup.notified1)}
-                                />
-                                {signup.notified1At && (
-                                    <span className="text-[10px] text-muted-foreground mt-1 text-center">
-                                        {new Date(signup.notified1At).toLocaleDateString()}
-                                    </span>
-                                )}
+                                    {/* Checkboxes Dinámicos */}
+                                    {notificationIndices.map(index => {
+                                        const fieldName = `notified${index}`;
+                                        const dateFieldName = `notified${index}At`;
+                                        return (
+                                            <div key={index} className="w-[100px] flex-shrink-0 flex flex-col items-center justify-center">
+                                                <Checkbox 
+                                                    checked={signup[fieldName]} 
+                                                    onCheckedChange={() => toggleNotification(signup.id, event.id, index, signup[fieldName])}
+                                                />
+                                                {signup[dateFieldName] && (
+                                                    <span className="text-[10px] text-muted-foreground mt-1 text-center leading-tight">
+                                                        {new Date(signup[dateFieldName]).toLocaleDateString()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    
+                                    {/* Botones de Acción */}
+                                    <div className="flex-grow flex gap-2 justify-end items-center">
+                                        {editingSignupId === signup.id ? (
+                                            <>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => saveSignup(event.id)}>
+                                                    <Save className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={cancelEditingSignup}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEditingSignup(signup)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteSignup(signup.id, event.id)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                ))}
                             </div>
-
-                            {/* Checkbox Notificación 2 */}
-                            <div className="col-span-3 md:col-span-2 flex flex-col items-center justify-center">
-                                <Checkbox 
-                                    checked={signup.notified2} 
-                                    onCheckedChange={() => toggleNotification(signup.id, event.id, 2, signup.notified2)}
-                                />
-                                {signup.notified2At && (
-                                    <span className="text-[10px] text-muted-foreground mt-1 text-center">
-                                        {new Date(signup.notified2At).toLocaleDateString()}
-                                    </span>
-                                )}
-                            </div>
-                            
-                            {/* Botones de Acción */}
-                            <div className="col-span-1 md:col-span-2 flex flex-col md:flex-row gap-2 justify-end items-center">
-                                {editingSignupId === signup.id ? (
-                                    <>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => saveSignup(event.id)}>
-                                            <Save className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={cancelEditingSignup}>
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEditingSignup(signup)}>
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteSignup(signup.id, event.id)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
-                          </div>
-                        ))}
+                        </div>
                       </div>
                     )}
                   </CardContent>
