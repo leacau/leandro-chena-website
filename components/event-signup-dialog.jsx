@@ -34,18 +34,55 @@ export function EventSignupDialog({
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitError("");
+
     try {
-      const [{ db }, { addDoc, collection, serverTimestamp }] = await Promise.all([
+      const [{ db }, { addDoc, collection, serverTimestamp, query, where, getDocs }] = await Promise.all([
         import("@/lib/firebase"),
         import("firebase/firestore"),
       ]);
 
+      // 1. Validar duplicados para este evento específico
+      const signupsRef = collection(db, "eventSignups");
+      
+      // Chequear Email
+      const qEmail = query(
+        signupsRef, 
+        where("eventId", "==", eventId),
+        where("email", "==", formData.email.trim())
+      );
+      const emailSnapshot = await getDocs(qEmail);
+
+      if (!emailSnapshot.empty) {
+        setSubmitError("Este correo electrónico ya está registrado para este evento.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Chequear WhatsApp (si se completó)
+      if (formData.whatsapp.trim()) {
+        const qWhatsapp = query(
+          signupsRef,
+          where("eventId", "==", eventId),
+          where("whatsapp", "==", formData.whatsapp.trim())
+        );
+        const whatsappSnapshot = await getDocs(qWhatsapp);
+
+        if (!whatsappSnapshot.empty) {
+          setSubmitError("Este número de WhatsApp ya está registrado para este evento.");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // 2. Guardar inscripción si no hay duplicados
       await addDoc(collection(db, "eventSignups"), {
         eventId,
         name: formData.name.trim(),
         email: formData.email.trim(),
         whatsapp: formData.whatsapp.trim(),
         createdAt: serverTimestamp(),
+        notified1: false, // Inicializar estado de notificación 1
+        notified2: false, // Inicializar estado de notificación 2
       });
 
       setIsDialogOpen(false);
@@ -120,7 +157,7 @@ export function EventSignupDialog({
               />
             </div>
 
-            {submitError && <p className="text-sm text-destructive">{submitError}</p>}
+            {submitError && <p className="text-sm text-destructive font-medium">{submitError}</p>}
 
             <DialogFooter className="pt-2">
               <Button type="submit" disabled={isSubmitting} className="w-full">
