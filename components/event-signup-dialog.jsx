@@ -12,9 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
 
 export function EventSignupDialog({
   eventId,
+  eventTitle = "este evento", // Valor por defecto si no se pasa
   triggerLabel = "Inscribirme",
   triggerClassName = "",
   triggerVariant = "default",
@@ -28,12 +30,78 @@ export function EventSignupDialog({
     email: "",
     whatsapp: "",
   });
+  
+  // Estado para errores específicos de cada campo
+  const [fieldErrors, setFieldErrors] = useState({
+    email: null,
+    whatsapp: null
+  });
   const [submitError, setSubmitError] = useState("");
+
+  // Función para validar disponibilidad en Firestore al perder el foco (Blur)
+  const validateFieldAvailability = async (field, value) => {
+    if (!value || value.trim() === "") return;
+
+    try {
+      const [{ db }, { collection, query, where, getDocs }] = await Promise.all([
+        import("@/lib/firebase"),
+        import("firebase/firestore"),
+      ]);
+
+      const signupsRef = collection(db, "eventSignups");
+      const q = query(
+        signupsRef,
+        where("eventId", "==", eventId),
+        where(field, "==", value.trim())
+      );
+      
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        setFieldErrors(prev => ({
+          ...prev,
+          [field]: `Este ${field === 'email' ? 'correo' : 'número'} ya está registrado para este evento.`
+        }));
+      } else {
+         // Si no existe, limpiamos el error de ese campo
+        setFieldErrors(prev => ({
+          ...prev,
+          [field]: null
+        }));
+      }
+    } catch (err) {
+      console.error(`Error validando ${field}:`, err);
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (name === "email" || name === "whatsapp") {
+      validateFieldAvailability(name, value);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Opcional: Limpiar error al modificar (para que el usuario pueda corregir)
+    // O dejarlo hasta el próximo blur. Aquí lo limpiamos para mejor UX.
+    if (fieldErrors[name]) {
+       setFieldErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setSubmitError("");
+    
+    // Bloquear si hay errores de validación pendientes visible
+    if (fieldErrors.email || fieldErrors.whatsapp) {
+        return; 
+    }
+
+    setIsSubmitting(true);
 
     try {
       const [{ db }, { addDoc, collection, serverTimestamp, query, where, getDocs }] = await Promise.all([
@@ -41,7 +109,7 @@ export function EventSignupDialog({
         import("firebase/firestore"),
       ]);
 
-      // 1. Validar duplicados para este evento específico
+      // 1. Re-validación final de seguridad antes de guardar
       const signupsRef = collection(db, "eventSignups");
       
       // Chequear Email
@@ -53,12 +121,12 @@ export function EventSignupDialog({
       const emailSnapshot = await getDocs(qEmail);
 
       if (!emailSnapshot.empty) {
-        setSubmitError("Este correo electrónico ya está registrado para este evento.");
+        setFieldErrors(prev => ({...prev, email: "Este correo ya está registrado."}));
         setIsSubmitting(false);
         return;
       }
 
-      // Chequear WhatsApp (si se completó)
+      // Chequear WhatsApp (si existe)
       if (formData.whatsapp.trim()) {
         const qWhatsapp = query(
           signupsRef,
@@ -68,25 +136,34 @@ export function EventSignupDialog({
         const whatsappSnapshot = await getDocs(qWhatsapp);
 
         if (!whatsappSnapshot.empty) {
-          setSubmitError("Este número de WhatsApp ya está registrado para este evento.");
+          setFieldErrors(prev => ({...prev, whatsapp: "Este número ya está registrado."}));
           setIsSubmitting(false);
           return;
         }
       }
 
-      // 2. Guardar inscripción si no hay duplicados
+      // 2. Guardar inscripción
       await addDoc(collection(db, "eventSignups"), {
         eventId,
         name: formData.name.trim(),
         email: formData.email.trim(),
         whatsapp: formData.whatsapp.trim(),
         createdAt: serverTimestamp(),
-        notified1: false, // Inicializar estado de notificación 1
-        notified2: false, // Inicializar estado de notificación 2
+        // Inicializamos las notificaciones básicas, aunque ahora sean dinámicas en admin
+        notified1: false, 
+        notified2: false, 
       });
 
       setIsDialogOpen(false);
       setFormData({ name: "", email: "", whatsapp: "" });
+      
+      // Mostrar mensaje de éxito personalizado
+      toast({
+        title: "¡Inscripción exitosa!",
+        description: `Te has registrado con éxito en ${eventTitle}.`,
+        duration: 5000,
+      });
+
     } catch (err) {
       console.error("Error al registrar inscripción", err);
       setSubmitError("Ocurrió un problema al guardar tu inscripción. Intentá nuevamente.");
@@ -123,7 +200,7 @@ export function EventSignupDialog({
                 id="name"
                 name="name"
                 value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={handleInputChange}
                 placeholder="Ej: Juan Pérez"
                 required
                 autoComplete="name"
@@ -137,11 +214,16 @@ export function EventSignupDialog({
                 name="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                onChange={handleInputChange}
+                onBlur={handleBlur} // Validación al salir del campo
                 placeholder="tu@correo.com"
                 required
                 autoComplete="email"
+                className={fieldErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {fieldErrors.email && (
+                  <p className="text-sm text-destructive font-medium">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -151,16 +233,21 @@ export function EventSignupDialog({
                 name="whatsapp"
                 inputMode="tel"
                 value={formData.whatsapp}
-                onChange={(e) => setFormData((prev) => ({ ...prev, whatsapp: e.target.value }))}
+                onChange={handleInputChange}
+                onBlur={handleBlur} // Validación al salir del campo
                 placeholder="54911XXXXXXXX"
                 autoComplete="tel"
+                className={fieldErrors.whatsapp ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+               {fieldErrors.whatsapp && (
+                  <p className="text-sm text-destructive font-medium">{fieldErrors.whatsapp}</p>
+              )}
             </div>
 
             {submitError && <p className="text-sm text-destructive font-medium">{submitError}</p>}
 
             <DialogFooter className="pt-2">
-              <Button type="submit" disabled={isSubmitting} className="w-full">
+              <Button type="submit" disabled={isSubmitting || fieldErrors.email || fieldErrors.whatsapp} className="w-full">
                 {isSubmitting ? "Enviando..." : "Enviar inscripción"}
               </Button>
             </DialogFooter>
