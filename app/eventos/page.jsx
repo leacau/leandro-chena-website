@@ -91,17 +91,17 @@ export default function EventosPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col sm:flex-row gap-2">
+           {/*    <CardFooter className="flex flex-col sm:flex-row gap-2">
                 <Button asChild className="w-full sm:w-auto">
                   <Link href={`/eventos/${event.id}`}>Ver detalles</Link>
                 </Button>
-              //  <EventSignupDialog
-              //    eventId={event.id}
-               //   triggerVariant="outline"
-               //   triggerSize="default"
-              //    triggerClassName="w-full sm:w-auto"
-            //    />
-              </CardFooter>
+            <EventSignupDialog
+                  eventId={event.id}
+                  triggerVariant="outline"
+                  triggerSize="default"
+                  triggerClassName="w-full sm:w-auto"
+                />
+              </CardFooter> */}
             </Card>
           ))}
         </div>
