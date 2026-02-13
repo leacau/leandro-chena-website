@@ -163,16 +163,16 @@ export default function EventoPage({ params }) {
 				)}
 
 		<div className='mt-12 pt-8 border-t flex flex-col sm:flex-row gap-4'>
-			{/* 		<EventSignupDialog
+			 		{/* <EventSignupDialog
 						eventId={safeEvent.id}
                        eventTitle={safeEvent.title} // MODIFICADO: Se pasa el título
 						triggerClassName='flex-1'
 						triggerSize='lg'
 						fullWidth
-					/>
+					/> */}
 					<Button variant='outline' size='lg' asChild className='flex-1'>
 						<Link href='/eventos'>Ver otros eventos</Link>
-					</Button> */}
+					</Button>
 				</div>
 			</div>
 			<style jsx global>{styles}</style>
