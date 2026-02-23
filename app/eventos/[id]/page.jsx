@@ -270,4 +270,9 @@ const styles = `
 	  padding-left: 1.5rem;
 	  margin: 1rem 0;
 	}
+  /* Forzamos que los párrafos vacíos mantengan altura para respetar los Enters del editor */
+  .event-content p:empty {
+    display: block;
+    min-height: 1.5rem;
+  }
 `;
