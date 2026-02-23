@@ -8,11 +8,61 @@ import { EventSignupDialog } from '@/components/event-signup-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
 
+// Función para verificar si faltan <= 2 horas para el evento
+const isRegistrationClosed = (dateStr, timeStr) => {
+  try {
+    if (!dateStr || !timeStr) return false;
+
+    let year, month, day;
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts[0].length === 4) { // YYYY/MM/DD
+        [year, month, day] = parts;
+      } else { // DD/MM/YYYY
+        [day, month, year] = parts;
+      }
+    } else if (dateStr.includes('-')) {
+      const parts = dateStr.split('-');
+      if (parts[0].length === 4) { // YYYY-MM-DD
+        [year, month, day] = parts;
+      } else { // DD-MM-YYYY
+        [day, month, year] = parts;
+      }
+    } else {
+      return false; 
+    }
+
+    const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
+    let hour = 0;
+    let minute = 0;
+    if (timeMatch) {
+      hour = parseInt(timeMatch[1], 10);
+      minute = parseInt(timeMatch[2], 10);
+
+      if (timeStr.toLowerCase().includes('pm') && hour < 12) {
+        hour += 12;
+      }
+    }
+
+    const eventDate = new Date(year, month - 1, day, hour, minute);
+    const now = new Date();
+
+    const diffMs = eventDate.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    return diffHours <= 2;
+  } catch (e) {
+    console.error("Error validando fecha/hora", e);
+    return false;
+  }
+}
+
 export default function EventoPage({ params }) {
 	const { id } = params;
 	const [isLoading, setIsLoading] = useState(true);
 	const [eventData, setEventData] = useState(null);
 	const [error, setError] = useState(null);
+	
 	const safeEvent = useMemo(() => {
 		if (!eventData) {
 			return null;
@@ -93,6 +143,8 @@ export default function EventoPage({ params }) {
 			(safeEvent.content && safeEvent.content.trim())
 	);
 
+    const isClosed = isRegistrationClosed(safeEvent.date, safeEvent.time);
+
 	return (
 		<div className='container mx-auto py-12 px-4'>
 			<div className='max-w-4xl mx-auto'>
@@ -105,7 +157,13 @@ export default function EventoPage({ params }) {
 				</Link>
 
 					{safeEvent.image && (
-						<div className='w-full mb-8 rounded-lg overflow-hidden border'>
+						<div className='w-full mb-8 rounded-lg overflow-hidden border relative'>
+                             {/* Cinta de CERRADO en página de detalle */}
+                            {isClosed && (
+                                <div className="absolute top-8 -right-16 w-64 text-center bg-destructive text-destructive-foreground py-2 shadow-lg z-10 transform rotate-45 font-bold tracking-wider">
+                                    CERRADO
+                                </div>
+                            )}
 							<div className='relative aspect-[16/9]'>
 								<Image
 									src={
@@ -162,14 +220,20 @@ export default function EventoPage({ params }) {
 					</div>
 				)}
 
-		<div className='mt-12 pt-8 border-t flex flex-col sm:flex-row gap-4'>
-			 		{/* <EventSignupDialog
-						eventId={safeEvent.id}
-                       eventTitle={safeEvent.title} // MODIFICADO: Se pasa el título
-						triggerClassName='flex-1'
-						triggerSize='lg'
-						fullWidth
-					/> */}
+				<div className='mt-12 pt-8 border-t flex flex-col sm:flex-row gap-4'>
+                    {isClosed ? (
+                        <Button variant="secondary" size="lg" className="flex-1 opacity-70 cursor-not-allowed" disabled>
+                            Inscripciones Cerradas
+                        </Button>
+                    ) : (
+                        <EventSignupDialog
+                            eventId={safeEvent.id}
+                            eventTitle={safeEvent.title}
+                            triggerClassName='flex-1'
+                            triggerSize='lg'
+                            fullWidth
+                        />
+                    )}
 					<Button variant='outline' size='lg' asChild className='flex-1'>
 						<Link href='/eventos'>Ver otros eventos</Link>
 					</Button>
