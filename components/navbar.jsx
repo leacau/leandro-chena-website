@@ -67,12 +67,6 @@ export default function Navbar() {
 							Blog
 						</Link>
 						<Link
-							href='/recursos'
-							className='px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800'
-						>
-							Recursos
-						</Link>
-						<Link
 							href='/eventos'
 							className='px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800'
 						>
@@ -96,4 +90,3 @@ export default function Navbar() {
 		</header>
 	);
 }
-
