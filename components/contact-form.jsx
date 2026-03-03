@@ -88,7 +88,7 @@ export default function ContactForm() {
 	};
 
 	return (
-		<section className='py-16'>
+			<div>
 			<div className='mx-auto max-w-7xl px-6 lg:px-8'>
 				<form onSubmit={handleSubmit} className='space-y-6'>
 					<div className='grid grid-cols-1 gap-6 sm:grid-cols-2'>
@@ -169,7 +169,8 @@ export default function ContactForm() {
 				</form>
 				<div className='mt-8'></div>
 			</div>
-		</section>
+			</div>
+		
 	);
 }
 
