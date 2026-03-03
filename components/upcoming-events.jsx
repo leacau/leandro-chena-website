@@ -74,7 +74,7 @@ export default function UpcomingEvents() {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-6 lg:px-8">
+    <section className="bg-primary/5 py-16 border-y border-primary/10">
       <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Próximos Eventos</h2>
