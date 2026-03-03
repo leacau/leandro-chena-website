@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react"
 
 export default function AboutPreview() {
   return (
-    <section className="bg-muted/40 py-16">
+    <section className="bg-primary/5 py-16 border-y border-primary/10"{/* "bg-muted/40 py-16" */}>
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Sobre Mí</h2>
         <p className="mt-6 text-lg leading-8 text-muted-foreground">
