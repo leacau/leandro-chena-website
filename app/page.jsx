@@ -31,9 +31,9 @@ export default function Home() {
 						¿Tenés alguna pregunta o te interesan mis servicios? Completá el
 						formulario y estaremos en contacto a la brevedad.
 					</p>
-					<div>
+					<section className='"bg-primary/5 py-16 border-y border-primary/10"'>
 						<ContactForm />
-					</div>
+					</section>
 				</div>
 			</section>
 
