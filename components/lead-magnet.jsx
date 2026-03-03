@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -10,19 +11,18 @@ export default function LeadMagnet() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter(); // Instanciamos el enrutador para redireccionar
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Importación dinámica de Firebase para no afectar la carga inicial de la web
       const [{ db }, { collection, addDoc, serverTimestamp }] = await Promise.all([
         import("@/lib/firebase"),
         import("firebase/firestore"),
       ]);
 
-      // Guardamos el contacto en una colección llamada "leads"
       await addDoc(collection(db, "leads"), {
         name: name.trim(),
         email: email.trim(),
@@ -30,15 +30,15 @@ export default function LeadMagnet() {
         createdAt: serverTimestamp(),
       });
 
-      // Mostramos el cartel de éxito que arreglamos antes
+      // Modificamos el mensaje para que avise de la redirección
       toast({
-        title: "¡Material enviado!",
-        description: "Revisá tu bandeja de entrada para acceder a la guía.",
+        title: "¡Acceso concedido!",
+        description: "Redirigiendo a la sección de recursos gratuitos...",
       });
 
-      // Limpiamos el formulario
-      setName("");
-      setEmail("");
+      // Redirigimos automáticamente a la página oculta
+      router.push("/recursos");
+
     } catch (error) {
       console.error("Error al guardar el lead:", error);
       toast({
@@ -46,8 +46,7 @@ export default function LeadMagnet() {
         title: "Error",
         description: "Hubo un problema al procesar tu solicitud. Intentá nuevamente.",
       });
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Solo liberamos el botón si hay error
     }
   };
 
@@ -87,7 +86,7 @@ export default function LeadMagnet() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Enviando..." : "Descargar Guía Ahora"}
+              {isSubmitting ? "Redirigiendo..." : "Descargar Guía Ahora"}
             </Button>
             <p className="text-xs text-center text-muted-foreground mt-4">
               Tus datos están seguros. No enviamos spam.
