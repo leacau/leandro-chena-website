@@ -12,11 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/use-toast"; //
+import { toast } from "@/hooks/use-toast"; // CAMBIO: Usamos el hook centralizado
 
 export function EventSignupDialog({
   eventId,
-  eventTitle = "este evento", 
+  eventTitle = "este evento",
   triggerLabel = "Inscribirme",
   triggerClassName = "",
   triggerVariant = "default",
@@ -58,13 +58,10 @@ export function EventSignupDialog({
       if (!snapshot.empty) {
         setFieldErrors(prev => ({
           ...prev,
-          [field]: `Este ${field === 'email' ? 'correo' : 'número'} ya está registrado para este evento.`
+          [field]: `Este ${field === 'email' ? 'correo' : 'número'} ya está registrado.`
         }));
       } else {
-        setFieldErrors(prev => ({
-          ...prev,
-          [field]: null
-        }));
+        setFieldErrors(prev => ({ ...prev, [field]: null }));
       }
     } catch (err) {
       console.error(`Error validando ${field}:`, err);
@@ -90,12 +87,12 @@ export function EventSignupDialog({
     e.preventDefault();
     setSubmitError("");
     
-    // Si hay errores de validación, disparamos un toast de error explícito
+    // Si hay errores previos, avisamos con un cartel
     if (fieldErrors.email || fieldErrors.whatsapp) {
         toast({
             variant: "destructive",
-            title: "Error en los datos",
-            description: "Por favor, revisá los campos marcados antes de enviar.",
+            title: "Revisá los datos",
+            description: "El correo o teléfono ya están registrados para este evento.",
         });
         return; 
     }
@@ -108,26 +105,22 @@ export function EventSignupDialog({
         import("firebase/firestore"),
       ]);
 
+      // Verificación final de duplicados
       const signupsRef = collection(db, "eventSignups");
-      
-      const qEmail = query(
-        signupsRef, 
-        where("eventId", "==", eventId),
-        where("email", "==", formData.email.trim())
-      );
+      const qEmail = query(signupsRef, where("eventId", "==", eventId), where("email", "==", formData.email.trim()));
       const emailSnapshot = await getDocs(qEmail);
 
       if (!emailSnapshot.empty) {
-        setFieldErrors(prev => ({...prev, email: "Este correo ya está registrado."}));
         toast({
           variant: "destructive",
-          title: "Registro duplicado",
-          description: "Este correo electrónico ya está inscrito en este evento.",
+          title: "Ya estás registrado",
+          description: "Este correo ya se encuentra en la lista de este evento.",
         });
         setIsSubmitting(false);
         return;
       }
 
+      // Guardar en Firebase
       await addDoc(collection(db, "eventSignups"), {
         eventId,
         name: formData.name.trim(),
@@ -138,23 +131,21 @@ export function EventSignupDialog({
         notified2: false, 
       });
 
-      // Éxito: Disparar mensaje y cerrar diálogo
+      // CARTEL DE ÉXITO
       toast({
         title: "¡Inscripción exitosa!",
-        description: `Te has registrado correctamente en ${eventTitle}.`,
+        description: `Te registraste correctamente en ${eventTitle}.`,
       });
 
       setIsDialogOpen(false);
       setFormData({ name: "", email: "", whatsapp: "" });
 
     } catch (err) {
-      console.error("Error al registrar inscripción", err);
-      const msg = "Hubo un problema al guardar tu inscripción. Intentá nuevamente.";
-      setSubmitError(msg);
+      console.error("Error:", err);
       toast({
         variant: "destructive",
-        title: "Error de servidor",
-        description: msg,
+        title: "Error de registro",
+        description: "No pudimos completar la inscripción. Intentá de nuevo más tarde.",
       });
     } finally {
       setIsSubmitting(false);
@@ -179,7 +170,7 @@ export function EventSignupDialog({
             <DialogHeader>
               <DialogTitle>Inscribirme al evento</DialogTitle>
               <DialogDescription>
-                Usaremos estos datos para enviarte recordatorios y novedades del evento.
+                Completá tus datos para recibir el acceso y recordatorios.
               </DialogDescription>
             </DialogHeader>
 
@@ -192,7 +183,6 @@ export function EventSignupDialog({
                 onChange={handleInputChange}
                 placeholder="Ej: Juan Pérez"
                 required
-                autoComplete="name"
               />
             </div>
 
@@ -207,12 +197,9 @@ export function EventSignupDialog({
                 onBlur={handleBlur}
                 placeholder="tu@correo.com"
                 required
-                autoComplete="email"
                 className={fieldErrors.email ? "border-destructive" : ""}
               />
-              {fieldErrors.email && (
-                  <p className="text-sm text-destructive font-medium">{fieldErrors.email}</p>
-              )}
+              {fieldErrors.email && <p className="text-sm text-destructive">{fieldErrors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -220,20 +207,14 @@ export function EventSignupDialog({
               <Input
                 id="whatsapp"
                 name="whatsapp"
-                inputMode="tel"
                 value={formData.whatsapp}
                 onChange={handleInputChange}
                 onBlur={handleBlur}
                 placeholder="54911XXXXXXXX"
-                autoComplete="tel"
                 className={fieldErrors.whatsapp ? "border-destructive" : ""}
               />
-               {fieldErrors.whatsapp && (
-                  <p className="text-sm text-destructive font-medium">{fieldErrors.whatsapp}</p>
-              )}
+               {fieldErrors.whatsapp && <p className="text-sm text-destructive">{fieldErrors.whatsapp}</p>}
             </div>
-
-            {submitError && <p className="text-sm text-destructive font-medium">{submitError}</p>}
 
             <DialogFooter className="pt-2">
               <Button type="submit" disabled={isSubmitting} className="w-full">
