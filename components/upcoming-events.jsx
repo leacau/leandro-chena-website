@@ -13,21 +13,52 @@ export default function UpcomingEvents() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const [{ db }, { collection, getDocs, query, limit }] = await Promise.all([
+        const [{ db }, { collection, getDocs, query }] = await Promise.all([
           import("@/lib/firebase"),
           import("firebase/firestore"),
         ]);
 
-        // Traemos los eventos (limitado a 2 para no ocupar toda la pantalla)
-        const q = query(collection(db, "events"), limit(2));
+        // Traemos los eventos (sin límite inicial para poder filtrar los pasados)
+        const q = query(collection(db, "events"));
         const eventsSnapshot = await getDocs(q);
         
-        const eventsList = eventsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        setEvents(eventsList);
+        const upcomingEvents = eventsSnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter(event => {
+            if (!event.date) return false;
+            
+            // Lógica para procesar fechas en formato DD/MM/YYYY o YYYY-MM-DD
+            let year, month, day;
+            const dateStr = event.date;
+            
+            try {
+              if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts[0].length === 4) { [year, month, day] = parts; }
+                else { [day, month, year] = parts; }
+              } else if (dateStr.includes('-')) {
+                const parts = dateStr.split('-');
+                if (parts[0].length === 4) { [year, month, day] = parts; }
+                else { [day, month, year] = parts; }
+              } else {
+                return false;
+              }
+              
+              const eventDate = new Date(year, month - 1, day);
+              return eventDate >= today; // Solo conservamos los eventos de hoy en adelante
+            } catch (e) {
+              return false;
+            }
+          });
+
+        // Guardamos solo los próximos 2 eventos
+        setEvents(upcomingEvents.slice(0, 2));
       } catch (error) {
         console.error("Error al cargar eventos:", error);
       } finally {
@@ -38,7 +69,6 @@ export default function UpcomingEvents() {
     fetchEvents();
   }, []);
 
-  // Si está cargando o no hay eventos, devolvemos null para que la sección desaparezca de la web
   if (isLoading || events.length === 0) {
     return null; 
   }
