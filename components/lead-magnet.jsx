@@ -51,7 +51,7 @@ export default function LeadMagnet() {
   };
 
   return (
-    <section className="bg-primary/5 py-16 border-y border-primary/10">
+    <section className="mx-auto max-w-7xl px-6 lg:px-8">
       <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-12">
         <div className="lg:w-1/2">
           <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-xl mb-6">
