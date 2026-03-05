@@ -40,6 +40,8 @@ export default function EventsManager() {
     location: "",
     image: "/placeholder.svg?height=200&width=400",
     slug: "",
+    isLive: false,
+    meetLink: "",
   })
 
   const imageFileRef = useRef(null)
@@ -386,6 +388,8 @@ export default function EventsManager() {
       location: "",
       image: "/placeholder.svg?height=200&width=400",
       slug: "",
+      isLive: false,
+      meetLink: "",
     })
     setIsEditing(false)
   }
@@ -450,6 +454,34 @@ export default function EventsManager() {
                   required
                 />
               </div>
+            </div>
+
+            {/* SECCIÓN EN VIVO */}
+            <div className="p-4 border rounded-md bg-muted/20 space-y-4">
+                <div className="flex items-center space-x-2">
+                    <Checkbox 
+                        id="isLive" 
+                        checked={currentEvent.isLive || false} 
+                        onCheckedChange={(checked) => setCurrentEvent({...currentEvent, isLive: checked})}
+                    />
+                    <Label htmlFor="isLive" className="cursor-pointer font-bold text-red-600 dark:text-red-500">
+                        Marcar evento como "EN VIVO" (Habilita el ingreso a la clase)
+                    </Label>
+                </div>
+
+                {currentEvent.isLive && (
+                    <div className="space-y-2 pl-6">
+                        <Label htmlFor="meetLink">Link de la clase (Meet, Zoom, etc.)</Label>
+                        <Input 
+                            id="meetLink" 
+                            name="meetLink" 
+                            value={currentEvent.meetLink || ""} 
+                            onChange={handleInputChange} 
+                            placeholder="https://meet.google.com/..." 
+                            required={currentEvent.isLive}
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="space-y-2">
@@ -544,7 +576,12 @@ export default function EventsManager() {
                 return (
                     <Card key={event.id} className="overflow-hidden">
                         <CardHeader>
-                        <CardTitle className="text-lg">{event.title}</CardTitle>
+                            <div className="flex items-center gap-2">
+                                <CardTitle className="text-lg">{event.title}</CardTitle>
+                                {event.isLive && (
+                                    <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">EN VIVO</span>
+                                )}
+                            </div>
                         </CardHeader>
                         <CardContent>
                         <div className="space-y-2">
@@ -658,6 +695,11 @@ export default function EventsManager() {
                                                                 <p className="text-sm text-muted-foreground break-all">{signup.email}</p>
                                                                 {signup.whatsapp && (
                                                                     <p className="text-sm text-muted-foreground">WP: {signup.whatsapp}</p>
+                                                                )}
+                                                                {signup.enteredLive && (
+                                                                    <span className="inline-flex items-center text-xs text-green-600 dark:text-green-400 font-medium mt-1">
+                                                                        <Check className="h-3 w-3 mr-1" /> Ingresó en vivo
+                                                                    </span>
                                                                 )}
                                                             </>
                                                         )}
