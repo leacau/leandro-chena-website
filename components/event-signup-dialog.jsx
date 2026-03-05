@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast"; // CAMBIO: Usamos el hook centralizado
+import { toast } from "@/hooks/use-toast";
 
 export function EventSignupDialog({
   eventId,
@@ -22,6 +22,8 @@ export function EventSignupDialog({
   triggerVariant = "default",
   triggerSize = "lg",
   fullWidth = false,
+  isLive = false, // NUEVO PROP: ¿Está en vivo?
+  meetLink = "",  // NUEVO PROP: Link de la clase
 }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +40,9 @@ export function EventSignupDialog({
   const [submitError, setSubmitError] = useState("");
 
   const validateFieldAvailability = async (field, value) => {
-    if (!value || value.trim() === "") return;
+    // Si el evento está en vivo, no hacemos validación de duplicados al salir del campo
+    // porque queremos que los usuarios registrados puedan usar su correo para entrar.
+    if (!value || value.trim() === "" || isLive) return;
 
     try {
       const [{ db }, { collection, query, where, getDocs }] = await Promise.all([
@@ -100,7 +104,7 @@ export function EventSignupDialog({
     setIsSubmitting(true);
 
     try {
-      const [{ db }, { addDoc, collection, serverTimestamp, query, where, getDocs }] = await Promise.all([
+      const [{ db }, { addDoc, collection, serverTimestamp, query, where, getDocs, doc, updateDoc }] = await Promise.all([
         import("@/lib/firebase"),
         import("firebase/firestore"),
       ]);
@@ -110,32 +114,56 @@ export function EventSignupDialog({
       const qEmail = query(signupsRef, where("eventId", "==", eventId), where("email", "==", formData.email.trim()));
       const emailSnapshot = await getDocs(qEmail);
 
+      let existingDocId = null;
+
       if (!emailSnapshot.empty) {
-        toast({
-          variant: "destructive",
-          title: "Ya estás registrado",
-          description: "Este correo ya se encuentra en la lista de este evento.",
-        });
-        setIsSubmitting(false);
-        return;
+        if (!isLive) {
+          // Inscripción normal, rechazar duplicados
+          toast({
+            variant: "destructive",
+            title: "Ya estás registrado",
+            description: "Este correo ya se encuentra en la lista de este evento.",
+          });
+          setIsSubmitting(false);
+          return;
+        } else {
+          // Evento en vivo, está intentando ingresar: obtenemos el id para actualizarlo
+          existingDocId = emailSnapshot.docs[0].id;
+        }
       }
 
-      // Guardar en Firebase
-      await addDoc(collection(db, "eventSignups"), {
-        eventId,
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        whatsapp: formData.whatsapp.trim(),
-        createdAt: serverTimestamp(),
-        notified1: false, 
-        notified2: false, 
-      });
+      if (isLive && existingDocId) {
+        // Si el usuario ya existía y está entrando en vivo, actualizamos su registro
+        await updateDoc(doc(db, "eventSignups", existingDocId), {
+            enteredLive: true
+        });
+      } else {
+        // Inscripción normal O usuario nuevo entrando por primera vez al en vivo
+        await addDoc(collection(db, "eventSignups"), {
+            eventId,
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            whatsapp: formData.whatsapp.trim(),
+            createdAt: serverTimestamp(),
+            notified1: false, 
+            notified2: false, 
+            enteredLive: isLive, // Lo marca automáticamente si se registra durante el vivo
+        });
+      }
 
-      // CARTEL DE ÉXITO
-      toast({
-        title: "¡Inscripción exitosa!",
-        description: `Te registraste correctamente en ${eventTitle}.`,
-      });
+      // ACCIONES POST GUARDADO SEGÚN MODO
+      if (isLive && meetLink) {
+         window.open(meetLink, "_blank");
+         toast({
+           title: "Ingresando...",
+           description: "Abriendo la sala en una nueva pestaña.",
+         });
+      } else {
+         toast({
+           title: "¡Inscripción exitosa!",
+           description: `Te registraste correctamente en ${eventTitle}.`,
+         });
+      }
 
       setIsDialogOpen(false);
       setFormData({ name: "", email: "", whatsapp: "" });
@@ -145,12 +173,22 @@ export function EventSignupDialog({
       toast({
         variant: "destructive",
         title: "Error de registro",
-        description: "No pudimos completar la inscripción. Intentá de nuevo más tarde.",
+        description: "No pudimos completar la operación. Intentá de nuevo más tarde.",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Textos dinámicos dependiendo de si está en vivo o no
+  const actualTriggerLabel = isLive ? "Ingresar" : triggerLabel;
+  const dialogTitle = isLive ? "Ingresar a la clase" : "Inscribirme al evento";
+  const dialogDesc = isLive 
+      ? "Completá tus datos para ingresar directamente a la sala." 
+      : "Completá tus datos para recibir el acceso y recordatorios.";
+  const submitLabel = isSubmitting 
+      ? "Procesando..." 
+      : (isLive ? "Ingresar ahora" : "Enviar inscripción");
 
   return (
     <>
@@ -161,16 +199,16 @@ export function EventSignupDialog({
         className={fullWidth ? `w-full ${triggerClassName}` : triggerClassName}
         onClick={() => setIsDialogOpen(true)}
       >
-        {triggerLabel}
+        {actualTriggerLabel}
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Inscribirme al evento</DialogTitle>
+              <DialogTitle>{dialogTitle}</DialogTitle>
               <DialogDescription>
-                Completá tus datos para recibir el acceso y recordatorios.
+                {dialogDesc}
               </DialogDescription>
             </DialogHeader>
 
@@ -218,7 +256,7 @@ export function EventSignupDialog({
 
             <DialogFooter className="pt-2">
               <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? "Enviando..." : "Enviar inscripción"}
+                {submitLabel}
               </Button>
             </DialogFooter>
           </form>
