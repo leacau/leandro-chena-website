@@ -78,6 +78,8 @@ export default function EventoPage({ params }) {
 			longDescription: eventData.longDescription || '',
 			content: eventData.content || '',
 			image: eventData.image || null,
+            isLive: eventData.isLive || false,
+            meetLink: eventData.meetLink || '',
 		};
 	}, [eventData]);
 
@@ -158,8 +160,12 @@ export default function EventoPage({ params }) {
 
 					{safeEvent.image && (
 						<div className='w-full mb-8 rounded-lg overflow-hidden border relative'>
-                             {/* Cinta de CERRADO en página de detalle */}
-                            {isClosed && (
+                             {/* Cinta de CERRADO / EN VIVO en página de detalle */}
+                            {safeEvent.isLive ? (
+                                <div className="absolute top-8 -right-16 w-64 text-center bg-red-600 text-white py-2 shadow-lg z-10 transform rotate-45 font-bold tracking-wider">
+                                    EN VIVO
+                                </div>
+                            ) : isClosed && (
                                 <div className="absolute top-8 -right-16 w-64 text-center bg-destructive text-destructive-foreground py-2 shadow-lg z-10 transform rotate-45 font-bold tracking-wider">
                                     CERRADO
                                 </div>
@@ -221,7 +227,17 @@ export default function EventoPage({ params }) {
 				)}
 
 				<div className='mt-12 pt-8 border-t flex flex-col sm:flex-row gap-4'>
-                    {isClosed ? (
+                    {safeEvent.isLive ? (
+                        <EventSignupDialog
+                            eventId={safeEvent.id}
+                            eventTitle={safeEvent.title}
+                            isLive={true}
+                            meetLink={safeEvent.meetLink}
+                            triggerClassName='flex-1 bg-red-600 hover:bg-red-700 text-white'
+                            triggerSize='lg'
+                            fullWidth
+                        />
+                    ) : isClosed ? (
                         <Button variant="secondary" size="lg" className="flex-1 opacity-70 cursor-not-allowed" disabled>
                             Inscripciones Cerradas
                         </Button>
