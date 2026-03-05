@@ -53,7 +53,6 @@ const isRegistrationClosed = (dateStr, timeStr) => {
     const diffMs = eventDate.getTime() - now.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
 
-    // Cierra si faltan 2 horas o menos (incluyendo si ya pasó, que sería negativo)
     return diffHours <= 2;
   } catch (e) {
     console.error("Error validando fecha/hora", e);
@@ -113,12 +112,18 @@ export default function EventosPage() {
             return (
               <Card key={event.id} className="overflow-hidden relative">
                 <div className="h-48 relative overflow-hidden">
-                  {/* Cinta de CERRADO */}
-                  {isClosed && (
+                  
+                  {/* Cintas superior: EN VIVO tiene prioridad sobre CERRADO */}
+                  {event.isLive ? (
+                    <div className="absolute top-5 -right-10 w-40 text-center bg-red-600 text-white py-1 shadow-md z-10 transform rotate-45 font-bold text-xs tracking-wider">
+                      EN VIVO
+                    </div>
+                  ) : isClosed && (
                     <div className="absolute top-5 -right-10 w-40 text-center bg-destructive text-destructive-foreground py-1 shadow-md z-10 transform rotate-45 font-bold text-xs tracking-wider">
                       CERRADO
                     </div>
                   )}
+
                   <Image
                     src={event.image || "/placeholder.svg?height=200&width=400"}
                     alt={event.title}
@@ -155,7 +160,17 @@ export default function EventosPage() {
                     <Link href={`/eventos/${event.id}`}>Ver detalles</Link>
                   </Button>
                   
-                  {isClosed ? (
+                  {/* Botón dinámico según el estado */}
+                  {event.isLive ? (
+                     <EventSignupDialog
+                       eventId={event.id}
+                       eventTitle={event.title}
+                       isLive={true}
+                       meetLink={event.meetLink}
+                       triggerVariant="default"
+                       triggerClassName="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white border-transparent"
+                     />
+                  ) : isClosed ? (
                      <Button variant="outline" className="w-full sm:w-auto opacity-50 cursor-not-allowed" disabled>
                         Inscripciones Cerradas
                      </Button>
