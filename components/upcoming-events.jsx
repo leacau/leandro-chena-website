@@ -74,14 +74,14 @@ export default function UpcomingEvents() {
   }
 
   return (
-    <section className="bg-primary/5 py-16 border-y border-primary/10">
+    <section className="mx-auto max-w-7xl px-6 lg:px-8">
       <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-         <div className="mx-auto max-w-2xl lg:mx-0">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Próximos Eventos</h2>
-        <p className="mt-4 text-lg text-muted-foreground">
-          Anotate en las próximas masterclasses y capacitaciones.
-        </p>
-      </div>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Próximos Eventos</h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Anotate en las próximas masterclasses y capacitaciones.
+          </p>
+        </div>
         <Button variant="outline" asChild>
           <Link href="/eventos">Ver todos</Link>
         </Button>
