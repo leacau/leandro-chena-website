@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast"; 
 
 export function EventSignupDialog({
   eventId,
@@ -40,8 +40,7 @@ export function EventSignupDialog({
   const [submitError, setSubmitError] = useState("");
 
   const validateFieldAvailability = async (field, value) => {
-    // Si el evento está en vivo, no hacemos validación de duplicados al salir del campo
-    // porque queremos que los usuarios registrados puedan usar su correo para entrar.
+    // Si el evento está en vivo, permitimos que usen su mail registrado para entrar.
     if (!value || value.trim() === "" || isLive) return;
 
     try {
@@ -91,7 +90,6 @@ export function EventSignupDialog({
     e.preventDefault();
     setSubmitError("");
     
-    // Si hay errores previos, avisamos con un cartel
     if (fieldErrors.email || fieldErrors.whatsapp) {
         toast({
             variant: "destructive",
@@ -109,7 +107,7 @@ export function EventSignupDialog({
         import("firebase/firestore"),
       ]);
 
-      // Verificación final de duplicados
+      // Verificación final
       const signupsRef = collection(db, "eventSignups");
       const qEmail = query(signupsRef, where("eventId", "==", eventId), where("email", "==", formData.email.trim()));
       const emailSnapshot = await getDocs(qEmail);
@@ -127,18 +125,18 @@ export function EventSignupDialog({
           setIsSubmitting(false);
           return;
         } else {
-          // Evento en vivo, está intentando ingresar: obtenemos el id para actualizarlo
+          // Evento en vivo, está intentando ingresar con su mail ya inscripto
           existingDocId = emailSnapshot.docs[0].id;
         }
       }
 
       if (isLive && existingDocId) {
-        // Si el usuario ya existía y está entrando en vivo, actualizamos su registro
+        // Actualizamos registro existente
         await updateDoc(doc(db, "eventSignups", existingDocId), {
             enteredLive: true
         });
       } else {
-        // Inscripción normal O usuario nuevo entrando por primera vez al en vivo
+        // Inscripción nueva (ya sea normal o de urgencia durante el vivo)
         await addDoc(collection(db, "eventSignups"), {
             eventId,
             name: formData.name.trim(),
@@ -147,13 +145,13 @@ export function EventSignupDialog({
             createdAt: serverTimestamp(),
             notified1: false, 
             notified2: false, 
-            enteredLive: isLive, // Lo marca automáticamente si se registra durante el vivo
+            enteredLive: isLive, // Marca true si entró directo al vivo
         });
       }
 
-      // ACCIONES POST GUARDADO SEGÚN MODO
+      // ACCIÓN AL FINALIZAR
       if (isLive && meetLink) {
-         window.open(meetLink, "_blank");
+         window.open(meetLink, "_blank"); // Le abre el link de Zoom/Meet
          toast({
            title: "Ingresando...",
            description: "Abriendo la sala en una nueva pestaña.",
@@ -180,7 +178,7 @@ export function EventSignupDialog({
     }
   };
 
-  // Textos dinámicos dependiendo de si está en vivo o no
+  // Textos dinámicos
   const actualTriggerLabel = isLive ? "Ingresar" : triggerLabel;
   const dialogTitle = isLive ? "Ingresar a la clase" : "Inscribirme al evento";
   const dialogDesc = isLive 
