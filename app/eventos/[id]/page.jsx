@@ -8,7 +8,6 @@ import { EventSignupDialog } from '@/components/event-signup-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
 
-// Función para verificar si faltan <= 2 horas para el evento
 const isRegistrationClosed = (dateStr, timeStr) => {
   try {
     if (!dateStr || !timeStr) return false;
@@ -16,16 +15,16 @@ const isRegistrationClosed = (dateStr, timeStr) => {
     let year, month, day;
     if (dateStr.includes('/')) {
       const parts = dateStr.split('/');
-      if (parts[0].length === 4) { // YYYY/MM/DD
+      if (parts[0].length === 4) { 
         [year, month, day] = parts;
-      } else { // DD/MM/YYYY
+      } else { 
         [day, month, year] = parts;
       }
     } else if (dateStr.includes('-')) {
       const parts = dateStr.split('-');
-      if (parts[0].length === 4) { // YYYY-MM-DD
+      if (parts[0].length === 4) { 
         [year, month, day] = parts;
-      } else { // DD-MM-YYYY
+      } else { 
         [day, month, year] = parts;
       }
     } else {
@@ -260,7 +259,6 @@ export default function EventoPage({ params }) {
 	);
 }
 
-// Estilos para el contenido enriquecido (similar al blog)
 const styles = `
 .event-content blockquote {
   border-left: 4px solid var(--primary);
@@ -286,7 +284,6 @@ const styles = `
 	  padding-left: 1.5rem;
 	  margin: 1rem 0;
 	}
-  /* Forzamos que los párrafos vacíos mantengan altura para respetar los Enters del editor */
   .event-content p:empty {
     display: block;
     min-height: 1.5rem;
