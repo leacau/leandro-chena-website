@@ -356,7 +356,6 @@ export default function EventsManager() {
   const handleEdit = (event) => {
     setCurrentEvent(event)
     setIsEditing(true)
-    // Nos aseguramos que al editar cierre la lista de inscriptos para que la vista quede más limpia
     setExpandedEventId(null)
   }
 
