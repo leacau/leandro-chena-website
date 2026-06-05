@@ -1,11 +1,11 @@
 import './globals.css';
-import './globals.css';
 
 import Footer from '@/components/footer';
 import { Inter } from 'next/font/google';
 import Navbar from '@/components/navbar';
 import Script from 'next/script';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from "@/components/ui/toaster"; // Importación necesaria para los mensajes
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -15,24 +15,24 @@ export const metadata = {
 		'Experto en ventas, consultoría comercial y capacitación de equipos de ventas. Descubre cómo puedo ayudarte a potenciar tu negocio.',
 	icons: {
 		icon: [
-			{ url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' }, // Ícono clásico
-			{ url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' }, // Navegadores modernos
+			{ url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+			{ url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
 			{ url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
 			{
 				url: '/favicon-192x192.png',
 				sizes: '192x192',
 				type: 'image/png',
-			}, // Android
+			},
 			{
 				url: '/favicon-512x512.png',
 				sizes: '512x512',
 				type: 'image/png',
-			}, // Android
+			},
 		],
-		apple: '/apple-touch-icon.png', // Icono para dispositivos Apple
-		shortcut: '/favicon.ico', // Favicon de acceso directo
+		apple: '/apple-touch-icon.png',
+		shortcut: '/favicon.ico',
 	},
-	manifest: '/site.webmanifest', // Web App Manifest para PWA
+	manifest: '/site.webmanifest',
 };
 
 export default function RootLayout({ children }) {
@@ -65,9 +65,10 @@ export default function RootLayout({ children }) {
 						<main className='flex-1 w-full'>{children}</main>
 						<Footer />
 					</div>
+					{/* Componente que permite mostrar los carteles de éxito/error */}
+					<Toaster /> 
 				</ThemeProvider>
 			</body>
 		</html>
 	);
 }
-

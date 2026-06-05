@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-import { Pencil, Trash2, Upload, Loader2, Copy, Check, X, Save } from "lucide-react"
+import { Pencil, Trash2, Upload, Loader2, Copy, Check, X, Save, Plus, Users } from "lucide-react"
 import { db, storage } from "@/lib/firebase"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, writeBatch } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
@@ -26,6 +26,9 @@ export default function EventsManager() {
   // Estado para editar inscripciones
   const [editingSignupId, setEditingSignupId] = useState(null)
   const [editingSignupData, setEditingSignupData] = useState({})
+  
+  // Estado para expandir la lista de inscriptos de un evento
+  const [expandedEventId, setExpandedEventId] = useState(null)
 
   const [currentEvent, setCurrentEvent] = useState({
     id: null,
@@ -37,6 +40,8 @@ export default function EventsManager() {
     location: "",
     image: "/placeholder.svg?height=200&width=400",
     slug: "",
+    isLive: false,
+    meetLink: "",
   })
 
   const imageFileRef = useRef(null)
@@ -83,7 +88,6 @@ export default function EventsManager() {
         if (loadedEvents.length > 0) {
           setEvents(loadedEvents)
         } else {
-           // Lógica de datos iniciales...
            setEvents([])
         }
       } catch (error) {
@@ -131,7 +135,28 @@ export default function EventsManager() {
     }
   }
 
-  // --- NUEVAS FUNCIONES PARA GESTIÓN DE INSCRIPCIONES ---
+  const toggleSignups = (id) => {
+    setExpandedEventId(prev => prev === id ? null : id)
+  }
+
+  // --- FUNCIONES PARA GESTIÓN DE INSCRIPCIONES Y NOTIFICACIONES DINÁMICAS ---
+
+  const handleAddNotificationColumn = async (event) => {
+    const currentCount = event.notificationCount || 2;
+    const newCount = currentCount + 1;
+
+    try {
+        await updateDoc(doc(db, "events", event.id), {
+            notificationCount: newCount
+        });
+
+        setEvents(prev => prev.map(e => e.id === event.id ? { ...e, notificationCount: newCount } : e));
+        toast({ title: "Columna de notificación agregada" });
+    } catch (error) {
+        console.error("Error adding notification column:", error);
+        toast({ title: "Error", description: "No se pudo agregar la columna.", variant: "destructive" });
+    }
+  }
 
   const handleCopyEmails = (eventId) => {
     const signups = signupsByEvent[eventId] || []
@@ -157,7 +182,6 @@ export default function EventsManager() {
     try {
       await deleteDoc(doc(db, "eventSignups", signupId))
       
-      // Actualizar estado local
       setSignupsByEvent(prev => ({
         ...prev,
         [eventId]: prev[eventId].filter(s => s.id !== signupId)
@@ -184,7 +208,6 @@ export default function EventsManager() {
     try {
       await updateDoc(doc(db, "eventSignups", editingSignupId), editingSignupData)
       
-      // Actualizar estado local
       setSignupsByEvent(prev => ({
         ...prev,
         [eventId]: prev[eventId].map(s => s.id === editingSignupId ? editingSignupData : s)
@@ -199,8 +222,8 @@ export default function EventsManager() {
   }
 
   const toggleNotification = async (signupId, eventId, notifNum, currentValue) => {
-    const fieldName = `notified${notifNum}` // notified1 o notified2
-    const dateFieldName = `notified${notifNum}At` // notified1At o notified2At
+    const fieldName = `notified${notifNum}` 
+    const dateFieldName = `notified${notifNum}At`
     const newValue = !currentValue
     const now = new Date()
 
@@ -216,7 +239,6 @@ export default function EventsManager() {
 
       await updateDoc(doc(db, "eventSignups", signupId), updateData)
 
-      // Actualizar estado local
       setSignupsByEvent(prev => ({
         ...prev,
         [eventId]: prev[eventId].map(s => 
@@ -237,7 +259,6 @@ export default function EventsManager() {
     const fieldName = `notified${notifNum}`
     const dateFieldName = `notified${notifNum}At`
 
-    // Actualizar batch de Firestore
     signups.forEach(signup => {
       const ref = doc(db, "eventSignups", signup.id)
       const updateData = { [fieldName]: checkAll }
@@ -249,7 +270,6 @@ export default function EventsManager() {
     try {
       await batch.commit()
       
-      // Actualizar estado local
       setSignupsByEvent(prev => ({
         ...prev,
         [eventId]: prev[eventId].map(s => ({
@@ -266,56 +286,33 @@ export default function EventsManager() {
     }
   }
 
-  // --- FIN NUEVAS FUNCIONES ---
+  // --- FIN FUNCIONES INSCRIPCIONES ---
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
 
-    // Validar tipo de archivo
     if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Por favor, seleccioná un archivo de imagen válido.",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "Por favor, seleccioná un archivo de imagen válido.", variant: "destructive" })
       return
     }
 
-    // Validar tamaño (máximo 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "La imagen es demasiado grande. El tamaño máximo es 2MB.",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "La imagen es demasiado grande. El tamaño máximo es 2MB.", variant: "destructive" })
       return
     }
 
     try {
       setIsLoading(true)
-
-      // Subir a Firebase Storage
       const storageRef = ref(storage, `events/${file.name}`)
       await uploadBytes(storageRef, file)
       const downloadURL = await getDownloadURL(storageRef)
 
-      setCurrentEvent((prev) => ({
-        ...prev,
-        image: downloadURL,
-      }))
-
-      toast({
-        title: "Imagen subida",
-        description: "La imagen se ha subido correctamente.",
-      })
+      setCurrentEvent((prev) => ({ ...prev, image: downloadURL }))
+      toast({ title: "Imagen subida", description: "La imagen se ha subido correctamente." })
     } catch (error) {
       console.error("Error uploading image:", error)
-      toast({
-        title: "Error",
-        description: "No se pudo subir la imagen.",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "No se pudo subir la imagen.", variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -327,57 +324,30 @@ export default function EventsManager() {
     try {
       setIsLoading(true)
 
-      // Generar slug si no existe
       let slug = currentEvent.slug
       if (!slug) {
-        slug = currentEvent.title
-          .toLowerCase()
-          .replace(/[^\w\s]/gi, "")
-          .replace(/\s+/g, "-")
+        slug = currentEvent.title.toLowerCase().replace(/[^\w\s]/gi, "").replace(/\s+/g, "-")
       }
 
       if (isEditing) {
-        // Actualizar evento existente en Firestore
         const eventRef = doc(db, "events", currentEvent.id)
-        await updateDoc(eventRef, {
-          ...currentEvent,
-          slug,
-        })
-
-        // Actualizar estado local
+        await updateDoc(eventRef, { ...currentEvent, slug })
         const updatedEvents = events.map((event) => (event.id === currentEvent.id ? { ...currentEvent, slug } : event))
         setEvents(updatedEvents)
-
         toast({ title: "Evento actualizado correctamente" })
       } else {
-        // Crear nuevo evento en Firestore
-        const eventData = {
-          ...currentEvent,
-          slug,
-        }
-        delete eventData.id // Eliminar id nulo antes de guardar
+        const eventData = { ...currentEvent, slug, notificationCount: 2 }
+        delete eventData.id
 
         const docRef = await addDoc(collection(db, "events"), eventData)
-
-        // Actualizar estado local
-        const newEvent = {
-          id: docRef.id,
-          ...eventData,
-        }
+        const newEvent = { id: docRef.id, ...eventData }
         setEvents([...events, newEvent])
-
         toast({ title: "Evento creado correctamente" })
       }
-
-      // Resetear formulario
       resetForm()
     } catch (error) {
       console.error("Error saving event:", error)
-      toast({
-        title: "Error",
-        description: "No se pudo guardar el evento.",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "No se pudo guardar el evento.", variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -386,28 +356,20 @@ export default function EventsManager() {
   const handleEdit = (event) => {
     setCurrentEvent(event)
     setIsEditing(true)
+    setExpandedEventId(null)
   }
 
   const handleDelete = async (id) => {
     if (window.confirm("¿Estás seguro que querés eliminar este evento?")) {
       try {
         setIsLoading(true)
-
-        // Eliminar de Firestore
         await deleteDoc(doc(db, "events", id))
-
-        // Actualizar estado local
         const updatedEvents = events.filter((event) => event.id !== id)
         setEvents(updatedEvents)
-
         toast({ title: "Evento eliminado correctamente" })
       } catch (error) {
         console.error("Error deleting event:", error)
-        toast({
-          title: "Error",
-          description: "No se pudo eliminar el evento.",
-          variant: "destructive",
-        })
+        toast({ title: "Error", description: "No se pudo eliminar el evento.", variant: "destructive" })
       } finally {
         setIsLoading(false)
       }
@@ -425,11 +387,12 @@ export default function EventsManager() {
       location: "",
       image: "/placeholder.svg?height=200&width=400",
       slug: "",
+      isLive: false,
+      meetLink: "",
     })
     setIsEditing(false)
   }
 
-  // Sincronizar editor cuando cambiamos de evento (editar / crear)
   useEffect(() => {
     if (editor && currentEvent.longDescription !== editor.getHTML()) {
       editor.commands.setContent(currentEvent.longDescription || "")
@@ -492,11 +455,38 @@ export default function EventsManager() {
               </div>
             </div>
 
+            {/* SECCIÓN EN VIVO */}
+            <div className="p-4 border rounded-md bg-muted/20 space-y-4">
+                <div className="flex items-center space-x-2">
+                    <Checkbox 
+                        id="isLive" 
+                        checked={currentEvent.isLive || false} 
+                        onCheckedChange={(checked) => setCurrentEvent({...currentEvent, isLive: checked})}
+                    />
+                    <Label htmlFor="isLive" className="cursor-pointer font-bold text-red-600 dark:text-red-500">
+                        Marcar evento como "EN VIVO" (Habilita el ingreso a la clase)
+                    </Label>
+                </div>
+
+                {currentEvent.isLive && (
+                    <div className="space-y-2 pl-6">
+                        <Label htmlFor="meetLink">Link de la clase (Meet, Zoom, etc.)</Label>
+                        <Input 
+                            id="meetLink" 
+                            name="meetLink" 
+                            value={currentEvent.meetLink || ""} 
+                            onChange={handleInputChange} 
+                            placeholder="https://meet.google.com/..." 
+                            required={currentEvent.isLive}
+                        />
+                    </div>
+                )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="longDescription">Descripción larga (formato enriquecido)</Label>
               <div className="border rounded-md">
                 <div className="flex flex-wrap gap-2 border-b px-2 py-2 bg-muted/60">
-                   {/* Botones del editor (sin cambios) */}
                   <Button type="button" variant="outline" size="sm" onClick={() => editor?.chain().focus().toggleBold().run()} disabled={!editor}>Negrita</Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => editor?.chain().focus().toggleItalic().run()} disabled={!editor}>Itálica</Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => editor?.chain().focus().toggleUnderline().run()} disabled={!editor}>Subrayado</Button>
@@ -575,175 +565,195 @@ export default function EventsManager() {
         {events.length === 0 ? (
           <p className="text-muted-foreground">No hay eventos programados.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {events.map((event) => (
-              <Card key={event.id}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{event.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Fecha: {event.date}</p>
-                    <p className="text-sm font-medium">Hora: {event.time}</p>
-                    <p className="text-sm font-medium">Ubicación: {event.location}</p>
-                    <p className="line-clamp-2 text-muted-foreground">{event.description}</p>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(event)} disabled={isLoading}>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(event.id)} disabled={isLoading}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Eliminar
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="text-xl font-bold">Inscripciones por evento</h2>
-        {events.length === 0 ? (
-          <p className="text-muted-foreground">No hay eventos aún.</p>
-        ) : (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-4">
             {events.map((event) => {
-              const signups = signupsByEvent[event.id] || []
-              const allNotif1 = signups.length > 0 && signups.every(s => s.notified1)
-              const allNotif2 = signups.length > 0 && signups.every(s => s.notified2)
+                const signups = signupsByEvent[event.id] || []
+                const notificationCount = event.notificationCount || 2;
+                const notificationIndices = Array.from({ length: notificationCount }, (_, i) => i + 1);
+                const isExpanded = expandedEventId === event.id;
 
-              return (
-                <Card key={`signups-${event.id}`}>
-                  <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="text-lg">
-                        {event.title}{" "}
-                        <span className="text-sm text-muted-foreground">({signups.length} inscripciones)</span>
-                        </CardTitle>
-                        <Button variant="outline" size="sm" onClick={() => handleCopyEmails(event.id)}>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copiar Emails
-                        </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {signups.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Aún no hay inscriptos.</p>
-                    ) : (
-                      <div className="space-y-3">
-                         {/* Encabezado masivo */}
-                        <div className="grid grid-cols-12 gap-2 pb-2 mb-2 border-b text-sm font-bold text-muted-foreground">
-                            <div className="col-span-5 md:col-span-6">Usuario</div>
-                            <div className="col-span-3 md:col-span-2 flex items-center justify-center gap-1">
-                                <Checkbox 
-                                    checked={allNotif1} 
-                                    onCheckedChange={(checked) => toggleAllNotifications(event.id, 1, checked)}
-                                /> Notif 1
+                return (
+                    <Card key={event.id} className="overflow-hidden">
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <CardTitle className="text-lg">{event.title}</CardTitle>
+                                {event.isLive && (
+                                    <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">EN VIVO</span>
+                                )}
                             </div>
-                            <div className="col-span-3 md:col-span-2 flex items-center justify-center gap-1">
-                                <Checkbox 
-                                    checked={allNotif2} 
-                                    onCheckedChange={(checked) => toggleAllNotifications(event.id, 2, checked)}
-                                /> Notif 2
-                            </div>
-                            <div className="col-span-1 md:col-span-2 text-right">Acciones</div>
+                        </CardHeader>
+                        <CardContent>
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium">Fecha: {event.date}</p>
+                            <p className="text-sm font-medium">Hora: {event.time}</p>
+                            <p className="text-sm font-medium">Ubicación: {event.location}</p>
+                            <p className="line-clamp-2 text-muted-foreground">{event.description}</p>
                         </div>
-
-                        {signups.map((signup) => (
-                          <div key={signup.id} className="grid grid-cols-12 gap-2 items-center border rounded-md p-3">
-                            {/* Datos del Usuario / Modo Edición */}
-                            <div className="col-span-5 md:col-span-6">
-                                {editingSignupId === signup.id ? (
-                                    <div className="space-y-2">
-                                        <Input 
-                                            value={editingSignupData.name} 
-                                            onChange={(e) => setEditingSignupData({...editingSignupData, name: e.target.value})} 
-                                            placeholder="Nombre"
-                                            className="h-8"
-                                        />
-                                        <Input 
-                                            value={editingSignupData.email} 
-                                            onChange={(e) => setEditingSignupData({...editingSignupData, email: e.target.value})} 
-                                            placeholder="Email"
-                                            className="h-8"
-                                        />
-                                        <Input 
-                                            value={editingSignupData.whatsapp} 
-                                            onChange={(e) => setEditingSignupData({...editingSignupData, whatsapp: e.target.value})} 
-                                            placeholder="WhatsApp"
-                                            className="h-8"
-                                        />
-                                    </div>
-                                ) : (
-                                    <>
-                                        <p className="font-medium">{signup.name || "Sin nombre"}</p>
-                                        <p className="text-sm text-muted-foreground break-all">{signup.email}</p>
-                                        {signup.whatsapp && (
-                                            <p className="text-sm text-muted-foreground">WP: {signup.whatsapp}</p>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Checkbox Notificación 1 */}
-                            <div className="col-span-3 md:col-span-2 flex flex-col items-center justify-center">
-                                <Checkbox 
-                                    checked={signup.notified1} 
-                                    onCheckedChange={() => toggleNotification(signup.id, event.id, 1, signup.notified1)}
-                                />
-                                {signup.notified1At && (
-                                    <span className="text-[10px] text-muted-foreground mt-1 text-center">
-                                        {new Date(signup.notified1At).toLocaleDateString()}
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Checkbox Notificación 2 */}
-                            <div className="col-span-3 md:col-span-2 flex flex-col items-center justify-center">
-                                <Checkbox 
-                                    checked={signup.notified2} 
-                                    onCheckedChange={() => toggleNotification(signup.id, event.id, 2, signup.notified2)}
-                                />
-                                {signup.notified2At && (
-                                    <span className="text-[10px] text-muted-foreground mt-1 text-center">
-                                        {new Date(signup.notified2At).toLocaleDateString()}
-                                    </span>
-                                )}
+                        </CardContent>
+                        
+                        <CardFooter className="flex justify-between items-center flex-wrap gap-2">
+                            {/* Botón de inscriptos */}
+                            <div className="flex space-x-2">
+                                <Button 
+                                    variant={isExpanded ? "default" : "secondary"} 
+                                    size="sm" 
+                                    onClick={() => toggleSignups(event.id)}
+                                >
+                                    <Users className="h-4 w-4 mr-2" />
+                                    Inscriptos ({signups.length})
+                                </Button>
                             </div>
                             
-                            {/* Botones de Acción */}
-                            <div className="col-span-1 md:col-span-2 flex flex-col md:flex-row gap-2 justify-end items-center">
-                                {editingSignupId === signup.id ? (
-                                    <>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => saveSignup(event.id)}>
-                                            <Save className="h-4 w-4" />
+                            {/* Acciones del evento */}
+                            <div className="flex justify-end space-x-2">
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(event)} disabled={isLoading}>
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Editar
+                                </Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleDelete(event.id)} disabled={isLoading}>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Eliminar
+                                </Button>
+                            </div>
+                        </CardFooter>
+
+                        {/* SECCIÓN DESPLEGABLE DE INSCRIPTOS DENTRO DE LA TARJETA */}
+                        {isExpanded && (
+                            <div className="border-t bg-slate-50 dark:bg-slate-900/20 p-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-bold text-sm md:text-base">
+                                        Gestión de Inscriptos
+                                    </h3>
+                                    <div className="flex gap-2 flex-wrap justify-end">
+                                        <Button variant="outline" size="sm" onClick={() => handleAddNotificationColumn(event)}>
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Nueva Notif.
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={cancelEditingSignup}>
-                                            <X className="h-4 w-4" />
+                                        <Button variant="outline" size="sm" onClick={() => handleCopyEmails(event.id)}>
+                                            <Copy className="h-4 w-4 mr-2" />
+                                            Copiar Emails
                                         </Button>
-                                    </>
+                                    </div>
+                                </div>
+
+                                {signups.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground bg-white dark:bg-slate-950 p-4 rounded-md border text-center">
+                                        Aún no hay inscriptos.
+                                    </p>
                                 ) : (
-                                    <>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEditingSignup(signup)}>
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteSignup(signup.id, event.id)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </>
+                                    <div className="w-full overflow-x-auto bg-white dark:bg-slate-950 rounded-md border p-3">
+                                        <div className="min-w-[800px]">
+                                            <div className="flex gap-2 pb-2 mb-2 border-b text-sm font-bold text-muted-foreground items-center">
+                                                <div className="w-[300px] flex-shrink-0">Usuario</div>
+                                                
+                                                {/* Columnas dinámicas de notificación (Headers) */}
+                                                {notificationIndices.map(index => {
+                                                    const allChecked = signups.length > 0 && signups.every(s => s[`notified${index}`]);
+                                                    return (
+                                                        <div key={index} className="w-[100px] flex-shrink-0 flex items-center justify-center gap-1 flex-col sm:flex-row">
+                                                            <Checkbox 
+                                                                checked={allChecked} 
+                                                                onCheckedChange={(checked) => toggleAllNotifications(event.id, index, checked)}
+                                                            /> 
+                                                            <span className="text-xs">Notif {index}</span>
+                                                        </div>
+                                                    );
+                                                })}
+
+                                                <div className="flex-grow text-right">Acciones</div>
+                                            </div>
+
+                                            {signups.map((signup) => (
+                                                <div key={signup.id} className="flex gap-2 items-center border rounded-md p-3 mb-2 last:mb-0">
+                                                    {/* Datos del Usuario / Modo Edición */}
+                                                    <div className="w-[300px] flex-shrink-0">
+                                                        {editingSignupId === signup.id ? (
+                                                            <div className="space-y-2">
+                                                                <Input 
+                                                                    value={editingSignupData.name} 
+                                                                    onChange={(e) => setEditingSignupData({...editingSignupData, name: e.target.value})} 
+                                                                    placeholder="Nombre"
+                                                                    className="h-8"
+                                                                />
+                                                                <Input 
+                                                                    value={editingSignupData.email} 
+                                                                    onChange={(e) => setEditingSignupData({...editingSignupData, email: e.target.value})} 
+                                                                    placeholder="Email"
+                                                                    className="h-8"
+                                                                />
+                                                                <Input 
+                                                                    value={editingSignupData.whatsapp} 
+                                                                    onChange={(e) => setEditingSignupData({...editingSignupData, whatsapp: e.target.value})} 
+                                                                    placeholder="WhatsApp"
+                                                                    className="h-8"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <p className="font-medium">{signup.name || "Sin nombre"}</p>
+                                                                <p className="text-sm text-muted-foreground break-all">{signup.email}</p>
+                                                                {signup.whatsapp && (
+                                                                    <p className="text-sm text-muted-foreground">WP: {signup.whatsapp}</p>
+                                                                )}
+                                                                {signup.enteredLive && (
+                                                                    <span className="inline-flex items-center text-xs text-green-600 dark:text-green-400 font-medium mt-1">
+                                                                        <Check className="h-3 w-3 mr-1" /> Ingresó en vivo
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Checkboxes Dinámicos */}
+                                                    {notificationIndices.map(index => {
+                                                        const fieldName = `notified${index}`;
+                                                        const dateFieldName = `notified${index}At`;
+                                                        return (
+                                                            <div key={index} className="w-[100px] flex-shrink-0 flex flex-col items-center justify-center">
+                                                                <Checkbox 
+                                                                    checked={signup[fieldName]} 
+                                                                    onCheckedChange={() => toggleNotification(signup.id, event.id, index, signup[fieldName])}
+                                                                />
+                                                                {signup[dateFieldName] && (
+                                                                    <span className="text-[10px] text-muted-foreground mt-1 text-center leading-tight">
+                                                                        {new Date(signup[dateFieldName]).toLocaleDateString()}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    
+                                                    {/* Botones de Acción */}
+                                                    <div className="flex-grow flex gap-2 justify-end items-center">
+                                                        {editingSignupId === signup.id ? (
+                                                            <>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => saveSignup(event.id)}>
+                                                                    <Save className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={cancelEditingSignup}>
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEditingSignup(signup)}>
+                                                                    <Pencil className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteSignup(signup.id, event.id)}>
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )
+                        )}
+                    </Card>
+                )
             })}
           </div>
         )}

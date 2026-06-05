@@ -1,6 +1,9 @@
 import Hero from '@/components/hero';
 import AboutPreview from '@/components/about-preview';
 import Services from '@/components/services';
+import UpcomingEvents from '@/components/upcoming-events';
+import LeadMagnet from '@/components/lead-magnet';
+import LatestPosts from '@/components/latest-posts';
 import Testimonials from '@/components/testimonials';
 import ContactForm from '@/components/contact-form';
 import CallToAction from '@/components/call-to-action';
@@ -14,6 +17,11 @@ export default function Home() {
 			<AboutPreview />
 			<Services />
 			{/*<Testimonials />*/}
+			
+			<UpcomingEvents />
+			<LeadMagnet />
+			<LatestPosts />
+
 			<section className='bg-muted/40 py-16'>
 				<div className='mx-auto max-w-7xl px-6 lg:px-8'>
 					<h2 className='text-3xl font-bold tracking-tight sm:text-4xl'>
@@ -23,9 +31,9 @@ export default function Home() {
 						¿Tenés alguna pregunta o te interesan mis servicios? Completá el
 						formulario y estaremos en contacto a la brevedad.
 					</p>
-					<div>
+					<section className='"bg-primary/5 py-16 border-y border-primary/10"'>
 						<ContactForm />
-					</div>
+					</section>
 				</div>
 			</section>
 
@@ -34,4 +42,3 @@ export default function Home() {
 		</div>
 	);
 }
-

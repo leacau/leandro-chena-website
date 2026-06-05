@@ -12,14 +12,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast"; 
 
 export function EventSignupDialog({
   eventId,
+  eventTitle = "este evento",
   triggerLabel = "Inscribirme",
   triggerClassName = "",
   triggerVariant = "default",
   triggerSize = "lg",
   fullWidth = false,
+  isLive = false, // NUEVO PROP: ¿Está en vivo?
+  meetLink = "",  // NUEVO PROP: Link de la clase
 }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,72 +32,161 @@ export function EventSignupDialog({
     email: "",
     whatsapp: "",
   });
+  
+  const [fieldErrors, setFieldErrors] = useState({
+    email: null,
+    whatsapp: null
+  });
   const [submitError, setSubmitError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitError("");
+  const validateFieldAvailability = async (field, value) => {
+    // Si el evento está en vivo, permitimos que usen su mail registrado para entrar.
+    if (!value || value.trim() === "" || isLive) return;
 
     try {
-      const [{ db }, { addDoc, collection, serverTimestamp, query, where, getDocs }] = await Promise.all([
+      const [{ db }, { collection, query, where, getDocs }] = await Promise.all([
         import("@/lib/firebase"),
         import("firebase/firestore"),
       ]);
 
-      // 1. Validar duplicados para este evento específico
       const signupsRef = collection(db, "eventSignups");
-      
-      // Chequear Email
-      const qEmail = query(
-        signupsRef, 
+      const q = query(
+        signupsRef,
         where("eventId", "==", eventId),
-        where("email", "==", formData.email.trim())
+        where(field, "==", value.trim())
       );
+      
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        setFieldErrors(prev => ({
+          ...prev,
+          [field]: `Este ${field === 'email' ? 'correo' : 'número'} ya está registrado.`
+        }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, [field]: null }));
+      }
+    } catch (err) {
+      console.error(`Error validando ${field}:`, err);
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (name === "email" || name === "whatsapp") {
+      validateFieldAvailability(name, value);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+       setFieldErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitError("");
+    
+    if (fieldErrors.email || fieldErrors.whatsapp) {
+        toast({
+            variant: "destructive",
+            title: "Revisá los datos",
+            description: "El correo o teléfono ya están registrados para este evento.",
+        });
+        return; 
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const [{ db }, { addDoc, collection, serverTimestamp, query, where, getDocs, doc, updateDoc }] = await Promise.all([
+        import("@/lib/firebase"),
+        import("firebase/firestore"),
+      ]);
+
+      // Verificación final
+      const signupsRef = collection(db, "eventSignups");
+      const qEmail = query(signupsRef, where("eventId", "==", eventId), where("email", "==", formData.email.trim()));
       const emailSnapshot = await getDocs(qEmail);
 
+      let existingDocId = null;
+
       if (!emailSnapshot.empty) {
-        setSubmitError("Este correo electrónico ya está registrado para este evento.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Chequear WhatsApp (si se completó)
-      if (formData.whatsapp.trim()) {
-        const qWhatsapp = query(
-          signupsRef,
-          where("eventId", "==", eventId),
-          where("whatsapp", "==", formData.whatsapp.trim())
-        );
-        const whatsappSnapshot = await getDocs(qWhatsapp);
-
-        if (!whatsappSnapshot.empty) {
-          setSubmitError("Este número de WhatsApp ya está registrado para este evento.");
+        if (!isLive) {
+          // Inscripción normal, rechazar duplicados
+          toast({
+            variant: "destructive",
+            title: "Ya estás registrado",
+            description: "Este correo ya se encuentra en la lista de este evento.",
+          });
           setIsSubmitting(false);
           return;
+        } else {
+          // Evento en vivo, está intentando ingresar con su mail ya inscripto
+          existingDocId = emailSnapshot.docs[0].id;
         }
       }
 
-      // 2. Guardar inscripción si no hay duplicados
-      await addDoc(collection(db, "eventSignups"), {
-        eventId,
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        whatsapp: formData.whatsapp.trim(),
-        createdAt: serverTimestamp(),
-        notified1: false, // Inicializar estado de notificación 1
-        notified2: false, // Inicializar estado de notificación 2
-      });
+      if (isLive && existingDocId) {
+        // Actualizamos registro existente
+        await updateDoc(doc(db, "eventSignups", existingDocId), {
+            enteredLive: true
+        });
+      } else {
+        // Inscripción nueva (ya sea normal o de urgencia durante el vivo)
+        await addDoc(collection(db, "eventSignups"), {
+            eventId,
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            whatsapp: formData.whatsapp.trim(),
+            createdAt: serverTimestamp(),
+            notified1: false, 
+            notified2: false, 
+            enteredLive: isLive, // Marca true si entró directo al vivo
+        });
+      }
+
+      // ACCIÓN AL FINALIZAR
+      if (isLive && meetLink) {
+         window.open(meetLink, "_blank"); // Le abre el link de Zoom/Meet
+         toast({
+           title: "Ingresando...",
+           description: "Abriendo la sala en una nueva pestaña.",
+         });
+      } else {
+         toast({
+           title: "¡Inscripción exitosa!",
+           description: `Te registraste correctamente en ${eventTitle}.`,
+         });
+      }
 
       setIsDialogOpen(false);
       setFormData({ name: "", email: "", whatsapp: "" });
+
     } catch (err) {
-      console.error("Error al registrar inscripción", err);
-      setSubmitError("Ocurrió un problema al guardar tu inscripción. Intentá nuevamente.");
+      console.error("Error:", err);
+      toast({
+        variant: "destructive",
+        title: "Error de registro",
+        description: "No pudimos completar la operación. Intentá de nuevo más tarde.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Textos dinámicos
+  const actualTriggerLabel = isLive ? "Ingresar" : triggerLabel;
+  const dialogTitle = isLive ? "Ingresar a la clase" : "Inscribirme al evento";
+  const dialogDesc = isLive 
+      ? "Completá tus datos para ingresar directamente a la sala." 
+      : "Completá tus datos para recibir el acceso y recordatorios.";
+  const submitLabel = isSubmitting 
+      ? "Procesando..." 
+      : (isLive ? "Ingresar ahora" : "Enviar inscripción");
 
   return (
     <>
@@ -104,16 +197,16 @@ export function EventSignupDialog({
         className={fullWidth ? `w-full ${triggerClassName}` : triggerClassName}
         onClick={() => setIsDialogOpen(true)}
       >
-        {triggerLabel}
+        {actualTriggerLabel}
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Inscribirme al evento</DialogTitle>
+              <DialogTitle>{dialogTitle}</DialogTitle>
               <DialogDescription>
-                Usaremos estos datos para enviarte recordatorios de próximas fechas y novedades del evento.
+                {dialogDesc}
               </DialogDescription>
             </DialogHeader>
 
@@ -123,10 +216,9 @@ export function EventSignupDialog({
                 id="name"
                 name="name"
                 value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={handleInputChange}
                 placeholder="Ej: Juan Pérez"
                 required
-                autoComplete="name"
               />
             </div>
 
@@ -137,11 +229,13 @@ export function EventSignupDialog({
                 name="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
                 placeholder="tu@correo.com"
                 required
-                autoComplete="email"
+                className={fieldErrors.email ? "border-destructive" : ""}
               />
+              {fieldErrors.email && <p className="text-sm text-destructive">{fieldErrors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -149,19 +243,18 @@ export function EventSignupDialog({
               <Input
                 id="whatsapp"
                 name="whatsapp"
-                inputMode="tel"
                 value={formData.whatsapp}
-                onChange={(e) => setFormData((prev) => ({ ...prev, whatsapp: e.target.value }))}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
                 placeholder="54911XXXXXXXX"
-                autoComplete="tel"
+                className={fieldErrors.whatsapp ? "border-destructive" : ""}
               />
+               {fieldErrors.whatsapp && <p className="text-sm text-destructive">{fieldErrors.whatsapp}</p>}
             </div>
-
-            {submitError && <p className="text-sm text-destructive font-medium">{submitError}</p>}
 
             <DialogFooter className="pt-2">
               <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? "Enviando..." : "Enviar inscripción"}
+                {submitLabel}
               </Button>
             </DialogFooter>
           </form>

@@ -11,6 +11,55 @@ import { db } from "@/lib/firebase"
 import { collection, getDocs } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 
+// Función para verificar si faltan <= 2 horas para el evento
+const isRegistrationClosed = (dateStr, timeStr) => {
+  try {
+    if (!dateStr || !timeStr) return false;
+
+    let year, month, day;
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts[0].length === 4) { // YYYY/MM/DD
+        [year, month, day] = parts;
+      } else { // DD/MM/YYYY
+        [day, month, year] = parts;
+      }
+    } else if (dateStr.includes('-')) {
+      const parts = dateStr.split('-');
+      if (parts[0].length === 4) { // YYYY-MM-DD
+        [year, month, day] = parts;
+      } else { // DD-MM-YYYY
+        [day, month, year] = parts;
+      }
+    } else {
+      return false; 
+    }
+
+    const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
+    let hour = 0;
+    let minute = 0;
+    if (timeMatch) {
+      hour = parseInt(timeMatch[1], 10);
+      minute = parseInt(timeMatch[2], 10);
+
+      if (timeStr.toLowerCase().includes('pm') && hour < 12) {
+        hour += 12;
+      }
+    }
+
+    const eventDate = new Date(year, month - 1, day, hour, minute);
+    const now = new Date();
+
+    const diffMs = eventDate.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    return diffHours <= 2;
+  } catch (e) {
+    console.error("Error validando fecha/hora", e);
+    return false;
+  }
+}
+
 export default function EventosPage() {
   const [events, setEvents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -57,53 +106,87 @@ export default function EventosPage() {
         <p className="text-muted-foreground">No hay eventos programados actualmente.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {events.map((event) => (
-            <Card key={event.id} className="overflow-hidden">
-              <div className="h-48 relative">
-                <Image
-                  src={event.image || "/placeholder.svg?height=200&width=400"}
-                  alt={event.title}
-                  fill
-                  className="object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null
-                    e.target.src = "/placeholder.svg?height=200&width=400"
-                  }}
-                />
-              </div>
-              <CardHeader>
-                <CardTitle>{event.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p>{event.description}</p>
-                <div className="space-y-2">
-                  <div className="flex items-center text-sm">
-                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{event.date}</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{event.time}</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{event.location}</span>
-                  </div>
+          {events.map((event) => {
+            const isClosed = isRegistrationClosed(event.date, event.time);
+            
+            return (
+              <Card key={event.id} className="overflow-hidden relative">
+                <div className="h-48 relative overflow-hidden">
+                  
+                  {/* Cintas superior: EN VIVO tiene prioridad sobre CERRADO */}
+                  {event.isLive ? (
+                    <div className="absolute top-5 -right-10 w-40 text-center bg-red-600 text-white py-1 shadow-md z-10 transform rotate-45 font-bold text-xs tracking-wider">
+                      EN VIVO
+                    </div>
+                  ) : isClosed && (
+                    <div className="absolute top-5 -right-10 w-40 text-center bg-destructive text-destructive-foreground py-1 shadow-md z-10 transform rotate-45 font-bold text-xs tracking-wider">
+                      CERRADO
+                    </div>
+                  )}
+
+                  <Image
+                    src={event.image || "/placeholder.svg?height=200&width=400"}
+                    alt={event.title}
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null
+                      e.target.src = "/placeholder.svg?height=200&width=400"
+                    }}
+                  />
                 </div>
-              </CardContent>
-              <CardFooter className="flex flex-col sm:flex-row gap-2">
-                <Button asChild className="w-full sm:w-auto">
-                  <Link href={`/eventos/${event.id}`}>Ver detalles</Link>
-                </Button>
-                <EventSignupDialog
-                  eventId={event.id}
-                  triggerVariant="outline"
-                  triggerSize="default"
-                  triggerClassName="w-full sm:w-auto"
-                />
-              </CardFooter>
-            </Card>
-          ))}
+                <CardHeader>
+                  <CardTitle>{event.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p>{event.description}</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>{event.date}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>{event.time}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>{event.location}</span>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col sm:flex-row gap-2">
+                  <Button asChild className="w-full sm:w-auto">
+                    <Link href={`/eventos/${event.id}`}>Ver detalles</Link>
+                  </Button>
+                  
+                  {/* Botón dinámico según el estado */}
+                  {event.isLive ? (
+                     <EventSignupDialog
+                       eventId={event.id}
+                       eventTitle={event.title}
+                       isLive={true}
+                       meetLink={event.meetLink}
+                       triggerVariant="default"
+                       triggerClassName="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white border-transparent"
+                     />
+                  ) : isClosed ? (
+                     <Button variant="outline" className="w-full sm:w-auto opacity-50 cursor-not-allowed" disabled>
+                        Inscripciones Cerradas
+                     </Button>
+                  ) : (
+                    <EventSignupDialog
+                      eventId={event.id}
+                      eventTitle={event.title}
+                      triggerVariant="outline"
+                      triggerSize="default"
+                      triggerClassName="w-full sm:w-auto"
+                    />
+                  )}
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
