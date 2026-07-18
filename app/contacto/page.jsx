@@ -44,7 +44,7 @@ export default function ContactoPage() {
 									</p>
 								</div>
 							</li>
-							<li className='flex items-start gap-3'>
+							{/* <li className='flex items-start gap-3'>
               <MessageCircle className='h-5 w-5 text-primary mt-0.5' />
               <a
 									href='https://api.whatsapp.com/send?phone=5493425051513&text=Hola%20Leandro%2C%20tengo%20una%20consulta.'
@@ -57,7 +57,7 @@ export default function ContactoPage() {
 										<p className='text-muted-foreground'>+54 342 5051513</p>
 									</div>
 								</a>
-							</li>
+							</li> */}
 						</ul>
 					</div>
 
