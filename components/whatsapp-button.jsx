@@ -1,9 +1,10 @@
 'use client';
 
-import { MessageCircle } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+
+import Link from 'next/link';
+import { MessageCircle } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 export default function WhatsAppButton() {
 	const pathname = usePathname();
@@ -18,7 +19,7 @@ export default function WhatsAppButton() {
 
 	return (
 		<Link
-			href='https://api.whatsapp.com/send?phone=5493425051513&text=Hola%20Leandro%2C%20tengo%20una%20consulta.'
+			href='https://api.whatsapp.com/send?phone=5493424790708&text=Hola%20Leandro%2C%20tengo%20una%20consulta.'
 			target='_blank'
 			rel='noopener noreferrer'
 			className='fixed bottom-10 right-10 z-50 flex items-center justify-center w-16 h-16 rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 transition-all duration-300 hover:scale-110'
@@ -29,3 +30,4 @@ export default function WhatsAppButton() {
 		</Link>
 	);
 }
+
