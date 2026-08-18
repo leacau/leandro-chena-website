@@ -6,52 +6,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Paintbrush, ImageIcon, FileImage, Type, Upload, Loader2 } from "lucide-react"
 import { db, storage } from "@/lib/firebase"
+import { applySiteColors, defaultSiteConfig, mergeSiteConfig } from "@/lib/site-config"
 
 // Importar las funciones de Firestore y Storage correctamente
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 
 export default function AppearanceManager() {
-  const [siteConfig, setSiteConfig] = useState({
-    logo: {
-      url: "",
-      alt: "Leandro Chena",
-    },
-    heroImage:
-      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/lea%20%282%29-ohqyC38OWMWc1aOOP7EHh8tm1PIUdd.png",
-    colors: {
-      primary: "#3b82f6", // Default blue
-      secondary: "#f3f4f6",
-      accent: "#f3f4f6",
-      text: "#111827",
-      background: "#ffffff",
-    },
-    content: {
-      hero: {
-        title: "Potenciá tus ventas y liderá con propósito",
-        subtitle:
-          "Soy Leandro Chena, consultor comercial y capacitador especializado en transformar equipos de ventas y desarrollar líderes que inspiran resultados extraordinarios.",
-      },
-      about: {
-        title: "Sobre Mí",
-        content:
-          "Con más de 15 años de experiencia en el mundo comercial, he ayudado a equipos a transformar su enfoque de ventas y liderazgo, logrando resultados extraordinarios.\n\nMi metodología combina estrategias probadas con un enfoque humano y sensible, adaptado a las necesidades específicas de cada organización y equipo.",
-      },
-      services: {
-        title: "Servicios",
-        subtitle: "Soluciones personalizadas para potenciar tu negocio y equipo comercial",
-      },
-      cta: {
-        title: "¿Listo para transformar tu enfoque comercial?",
-        subtitle:
-          "Descubrí cómo mis servicios de consultoría y capacitación pueden ayudarte a potenciar tus ventas y desarrollar líderes inspiradores.",
-      },
-    },
-  })
+  const [siteConfig, setSiteConfig] = useState(defaultSiteConfig)
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -73,25 +39,12 @@ export default function AppearanceManager() {
           if (docSnap.exists()) {
             const data = docSnap.data()
 
-            // Asegurarse de que todas las propiedades existan
-            const mergedConfig = {
-              ...siteConfig,
-              ...data,
-              colors: { ...siteConfig.colors, ...(data.colors || {}) },
-              content: {
-                ...siteConfig.content,
-                ...(data.content || {}),
-                hero: { ...siteConfig.content.hero, ...(data.content?.hero || {}) },
-                about: { ...siteConfig.content.about, ...(data.content?.about || {}) },
-                services: { ...siteConfig.content.services, ...(data.content?.services || {}) },
-                cta: { ...siteConfig.content.cta, ...(data.content?.cta || {}) },
-              },
-            }
+            const mergedConfig = mergeSiteConfig(data)
 
             setSiteConfig(mergedConfig)
 
             // Aplicar los colores inmediatamente
-            applyColors(mergedConfig.colors)
+            applySiteColors(mergedConfig.colors)
           } else {
             // Si no existe, crear el documento con los valores por defecto
             try {
@@ -106,9 +59,9 @@ export default function AppearanceManager() {
           const savedConfig = localStorage.getItem("siteConfig")
           if (savedConfig) {
             try {
-              const parsedConfig = JSON.parse(savedConfig)
+              const parsedConfig = mergeSiteConfig(JSON.parse(savedConfig))
               setSiteConfig(parsedConfig)
-              applyColors(parsedConfig.colors)
+              applySiteColors(parsedConfig.colors)
             } catch (parseError) {
               console.error("Error al analizar la configuración guardada:", parseError)
             }
@@ -226,13 +179,6 @@ export default function AppearanceManager() {
     }
   }
 
-  const applyColors = (colors) => {
-    document.documentElement.style.setProperty("--primary-color", colors.primary)
-    document.documentElement.style.setProperty("--secondary-color", colors.secondary)
-    document.documentElement.style.setProperty("--text-color", colors.text)
-    document.documentElement.style.setProperty("--background-color", colors.background)
-  }
-
   const handleSave = async () => {
     try {
       setIsLoading(true)
@@ -247,7 +193,7 @@ export default function AppearanceManager() {
         localStorage.setItem("siteConfig", JSON.stringify(siteConfig))
 
         // Aplicar los colores inmediatamente
-        applyColors(siteConfig.colors)
+        applySiteColors(siteConfig.colors)
 
         // Disparar un evento para que otros componentes sepan que la configuración ha cambiado
         window.dispatchEvent(new Event("siteConfigUpdated"))
@@ -277,42 +223,7 @@ export default function AppearanceManager() {
   }
 
   const handleReset = async () => {
-    const defaultConfig = {
-      logo: {
-        url: "",
-        alt: "Leandro Chena",
-      },
-      heroImage:
-        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/lea%20%282%29-ohqyC38OWMWc1aOOP7EHh8tm1PIUdd.png",
-      colors: {
-        primary: "#3b82f6", // Default blue
-        secondary: "#f3f4f6",
-        accent: "#f3f4f6",
-        text: "#111827",
-        background: "#ffffff",
-      },
-      content: {
-        hero: {
-          title: "Potenciá tus ventas y liderá con propósito",
-          subtitle:
-            "Soy Leandro Chena, consultor comercial y capacitador especializado en transformar equipos de ventas y desarrollar líderes que inspiran resultados extraordinarios.",
-        },
-        about: {
-          title: "Sobre Mí",
-          content:
-            "Con más de 15 años de experiencia en el mundo comercial, he ayudado a equipos a transformar su enfoque de ventas y liderazgo, logrando resultados extraordinarios.\n\nMi metodología combina estrategias probadas con un enfoque humano y sensible, adaptado a las necesidades específicas de cada organización y equipo.",
-        },
-        services: {
-          title: "Servicios",
-          subtitle: "Soluciones personalizadas para potenciar tu negocio y equipo comercial",
-        },
-        cta: {
-          title: "¿Listo para transformar tu enfoque comercial?",
-          subtitle:
-            "Descubrí cómo mis servicios de consultoría y capacitación pueden ayudarte a potenciar tus ventas y desarrollar líderes inspiradores.",
-        },
-      },
-    }
+    const defaultConfig = defaultSiteConfig
 
     try {
       setIsLoading(true)
@@ -330,7 +241,7 @@ export default function AppearanceManager() {
         localStorage.setItem("siteConfig", JSON.stringify(defaultConfig))
 
         // Restablecer los colores
-        applyColors(defaultConfig.colors)
+        applySiteColors(defaultConfig.colors)
 
         // Disparar evento
         window.dispatchEvent(new Event("siteConfigUpdated"))
@@ -820,4 +731,3 @@ export default function AppearanceManager() {
     </div>
   )
 }
-

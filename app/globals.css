@@ -11,7 +11,6 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    /* Color de marca hardcodeado */
     --primary: 153 100% 28%;
     --primary-foreground: 210 40% 98%;
 
@@ -37,7 +36,6 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    /* Color de marca hardcodeado en modo oscuro */
     --primary: 153 100% 28%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
@@ -63,33 +61,4 @@
     @apply bg-background text-foreground;
   }
 
-  /* Sobreescribir colores de Tailwind con variables personalizadas */
-  .bg-primary {
-    background-color: var(--primary-color, hsl(var(--primary))) !important;
-  }
-
-  .text-primary {
-    color: var(--primary-color, hsl(var(--primary))) !important;
-  }
-
-  .bg-secondary {
-    background-color: var(--secondary-color, hsl(var(--secondary))) !important;
-  }
-
-  .border-primary {
-    border-color: var(--primary-color, hsl(var(--primary))) !important;
-  }
-
-  .hover\:bg-primary:hover {
-    background-color: var(--primary-color, hsl(var(--primary))) !important;
-  }
-
-  .hover\:text-primary:hover {
-    color: var(--primary-color, hsl(var(--primary))) !important;
-  }
-
-  .bg-primary\/10 {
-    background-color: color-mix(in srgb, var(--primary-color, hsl(var(--primary))) 10%, transparent) !important;
-  }
 }
-

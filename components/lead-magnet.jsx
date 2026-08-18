@@ -10,6 +10,7 @@ import { DownloadCloud } from "lucide-react";
 export default function LeadMagnet() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [website, setWebsite] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter(); // Instanciamos el enrutador para redireccionar
 
@@ -18,6 +19,11 @@ export default function LeadMagnet() {
     setIsSubmitting(true);
 
     try {
+      if (website) {
+        setIsSubmitting(false);
+        return;
+      }
+
       const [{ db }, { collection, addDoc, serverTimestamp }] = await Promise.all([
         import("@/lib/firebase"),
         import("firebase/firestore"),
@@ -68,6 +74,14 @@ export default function LeadMagnet() {
         <div className="lg:w-1/2 w-full max-w-md bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border">
           <h3 className="text-xl font-semibold mb-6">Accedé al material gratuito</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="hidden" aria-hidden="true">
+              <Input
+                tabIndex={-1}
+                autoComplete="off"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+              />
+            </div>
             <div>
               <Input 
                 placeholder="Tu nombre" 

@@ -1,20 +1,11 @@
 'use client';
 
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { Toaster } from '@/components/ui/toaster';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
 export default function ContactForm() {
@@ -23,6 +14,7 @@ export default function ContactForm() {
 		name: '',
 		email: '',
 		phone: '',
+		website: '',
 		/* 		service: '',
 		 */ message: '',
 	});
@@ -41,6 +33,10 @@ export default function ContactForm() {
 		setIsSubmitting(true);
 
 		try {
+			if (formData.website) {
+				return;
+			}
+
 			// Enviar datos a Formspree
 			const response = await fetch('https://formspree.io/f/xpwplepb', {
 				// Reemplaza {form_id} con tu ID de formulario de Formspree
@@ -72,6 +68,7 @@ export default function ContactForm() {
 				name: '',
 				email: '',
 				phone: '',
+				website: '',
 				/* 				service: '',
 				 */ message: '',
 			});
@@ -92,6 +89,17 @@ export default function ContactForm() {
 		<div>
 			<div className='mx-auto max-w-7xl px-6 lg:px-8'>
 				<form onSubmit={handleSubmit} className='space-y-6'>
+					<div className='hidden' aria-hidden='true'>
+						<Label htmlFor='website'>Sitio web</Label>
+						<Input
+							id='website'
+							name='website'
+							tabIndex={-1}
+							autoComplete='off'
+							value={formData.website}
+							onChange={handleChange}
+						/>
+					</div>
 					<div className='grid grid-cols-1 gap-6 sm:grid-cols-2'>
 						<div>
 							<Label htmlFor='name'>Nombre</Label>
@@ -173,4 +181,3 @@ export default function ContactForm() {
 		</div>
 	);
 }
-

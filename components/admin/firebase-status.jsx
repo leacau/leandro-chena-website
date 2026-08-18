@@ -29,7 +29,7 @@ export default function FirebaseStatus() {
 				storageBucket: process.env.NEXT_PUBLIC_STORAGEBUCKET || '',
 				messagingSenderId: process.env.NEXT_PUBLIC_MESSAGINGSENDERID || '',
 				appId: process.env.NEXT_PUBLIC_APPID || '',
-				appId: process.env.NEXT_PUBLIC_MEASUREMENTID || '',
+				measurementId: process.env.NEXT_PUBLIC_MEASUREMENTID || '',
 			};
 
 			// Verificar si hay variables de entorno faltantes
@@ -142,4 +142,3 @@ export default function FirebaseStatus() {
 		</Card>
 	);
 }
-

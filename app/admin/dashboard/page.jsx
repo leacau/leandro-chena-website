@@ -11,7 +11,7 @@ import ResourcesManager from '@/components/admin/resources-manager4';
 import { Toaster } from '@/components/ui/toaster';
 import UrlShortener from '@/components/admin/url-shortener';
 import { logoutUser } from '@/lib/firebase';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -114,4 +114,3 @@ export default function AdminDashboardPage() {
 		</div>
 	);
 }
-

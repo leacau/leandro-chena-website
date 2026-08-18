@@ -7,7 +7,6 @@ import LeadMagnet from '@/components/lead-magnet';
 import Services from '@/components/services';
 import Testimonials from '@/components/testimonials';
 import UpcomingEvents from '@/components/upcoming-events';
-import WhatsAppButton from '@/components/whatsapp-button';
 
 export default function Home() {
 	return (
@@ -37,8 +36,6 @@ export default function Home() {
 			</section>
 
 			<CallToAction />
-			<WhatsAppButton />
 		</div>
 	);
 }
-

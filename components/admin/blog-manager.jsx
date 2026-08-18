@@ -42,7 +42,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import NextLink from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export default function BlogManager() {
 	const [posts, setPosts] = useState([]);

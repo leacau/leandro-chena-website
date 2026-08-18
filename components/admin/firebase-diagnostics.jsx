@@ -16,12 +16,13 @@ export default function FirebaseDiagnostics() {
   useEffect(() => {
     // Verificar variables de entorno
     const vars = {
-      apiKey: process.env.NEXT_PUBLIC_apiKey || "",
-      authDomain: process.env.NEXT_PUBLIC_authDomain || "",
-      projectId: process.env.NEXT_PUBLIC_projectId || "",
-      storageBucket: process.env.NEXT_PUBLIC_storageBucket || "",
-      messagingSenderId: process.env.NEXT_PUBLIC_messagingSenderId || "",
-      appId: process.env.NEXT_PUBLIC_appId || "",
+      apiKey: process.env.NEXT_PUBLIC_APIKEY || "",
+      authDomain: process.env.NEXT_PUBLIC_AUTHDOMAIN || "",
+      projectId: process.env.NEXT_PUBLIC_PROJECTID || "",
+      storageBucket: process.env.NEXT_PUBLIC_STORAGEBUCKET || "",
+      messagingSenderId: process.env.NEXT_PUBLIC_MESSAGINGSENDERID || "",
+      appId: process.env.NEXT_PUBLIC_APPID || "",
+      measurementId: process.env.NEXT_PUBLIC_MEASUREMENTID || "",
     }
 
     setEnvVars(vars)
@@ -161,4 +162,3 @@ export default function FirebaseDiagnostics() {
     </Card>
   )
 }
-

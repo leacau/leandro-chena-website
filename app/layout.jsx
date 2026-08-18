@@ -4,8 +4,10 @@ import Footer from '@/components/footer';
 import { Inter } from 'next/font/google';
 import Navbar from '@/components/navbar';
 import Script from 'next/script';
+import SiteConfigProvider from '@/components/site-config-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"; // Importación necesaria para los mensajes
+import WhatsAppButton from '@/components/whatsapp-button';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -60,13 +62,16 @@ export default function RootLayout({ children }) {
 					enableSystem
 					disableTransitionOnChange
 				>
-					<div className='flex min-h-screen flex-col overflow-x-hidden w-full'>
-						<Navbar />
-						<main className='flex-1 w-full'>{children}</main>
-						<Footer />
-					</div>
-					{/* Componente que permite mostrar los carteles de éxito/error */}
-					<Toaster /> 
+					<SiteConfigProvider>
+						<div className='flex min-h-screen flex-col overflow-x-hidden w-full'>
+							<Navbar />
+							<main className='flex-1 w-full'>{children}</main>
+							<Footer />
+						</div>
+						<WhatsAppButton />
+						{/* Componente que permite mostrar los carteles de éxito/error */}
+						<Toaster />
+					</SiteConfigProvider>
 				</ThemeProvider>
 			</body>
 		</html>

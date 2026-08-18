@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function hasOnly(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    match /users/{userId} {
+      allow create: if signedIn() && request.auth.uid == userId;
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow update, delete: if isAdmin();
+    }
+
+    match /config/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /blogPosts/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /events/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /resources/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /files/{document} {
+      allow read: if true;
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data).changedKeys().hasOnly(['downloads']);
+      allow create, delete: if isAdmin();
+    }
+
+    match /shortUrls/{document} {
+      allow read: if true;
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data).changedKeys().hasOnly(['clicks']);
+      allow create, delete: if isAdmin();
+    }
+
+    match /leads/{document} {
+      allow create: if hasOnly(['name', 'email', 'source', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.source is string;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /eventSignups/{document} {
+      allow create: if hasOnly([
+          'eventId',
+          'name',
+          'email',
+          'whatsapp',
+          'createdAt',
+          'notified1',
+          'notified2',
+          'enteredLive'
+        ])
+        && request.resource.data.eventId is string
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.whatsapp is string;
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data).changedKeys().hasOnly(['enteredLive']);
+      allow read, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

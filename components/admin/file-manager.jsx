@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clipboard, ExternalLink, Trash2, RefreshCw, Upload, FileText, Download } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 export default function FileManager() {
   const [file, setFile] = useState(null)
@@ -335,4 +335,3 @@ export default function FileManager() {
     </div>
   )
 }
-
