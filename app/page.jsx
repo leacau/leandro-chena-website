@@ -20,7 +20,7 @@ export default function Home() {
 			<LeadMagnet />
 			<LatestPosts />
 
-			<section className='bg-muted/40 py-16'>
+			<section className='bg-primary/5 py-16'>
 				<div className='mx-auto max-w-7xl px-6 lg:px-8'>
 					<h2 className='text-3xl font-bold tracking-tight sm:text-4xl'>
 						Contactame
@@ -29,7 +29,7 @@ export default function Home() {
 						¿Tenés alguna pregunta o te interesan mis servicios? Completá el
 						formulario y estaremos en contacto a la brevedad.
 					</p>
-					<section className='"bg-primary/5 py-16 border-y border-primary/10"'>
+					<section className='py-16 border-y border-primary/10'>
 						<ContactForm />
 					</section>
 				</div>
@@ -39,3 +39,4 @@ export default function Home() {
 		</div>
 	);
 }
+

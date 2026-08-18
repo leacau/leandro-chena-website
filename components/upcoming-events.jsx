@@ -60,7 +60,9 @@ export default function UpcomingEvents() {
         // Guardamos solo los próximos 2 eventos
         setEvents(upcomingEvents.slice(0, 2));
       } catch (error) {
-        console.error("Error al cargar eventos:", error);
+        if (error.code !== "permission-denied") {
+          console.error("Error al cargar eventos:", error);
+        }
       } finally {
         setIsLoading(false);
       }

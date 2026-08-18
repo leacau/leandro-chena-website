@@ -82,14 +82,14 @@ export default function Footer() {
 									Blog
 								</Link>
 							</li>
-							<li>
+							{/* 	<li>
 								<Link
 									href='/recursos'
 									className='text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary'
 								>
 									Recursos Gratuitos
 								</Link>
-							</li>
+							</li> */}
 							<li>
 								<Link
 									href='/eventos'

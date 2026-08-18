@@ -19,8 +19,7 @@ export default function LatestPosts() {
           import("firebase/firestore"),
         ]);
 
-        // Buscamos los últimos 3 artículos en la colección "blog" ordenados por fecha de creación
-        const q = query(collection(db, "blog"), orderBy("createdAt", "desc"), limit(3));
+        const q = query(collection(db, "blogPosts"), orderBy("createdAt", "desc"), limit(3));
         const snapshot = await getDocs(q);
         
         const postsList = snapshot.docs.map(doc => ({
@@ -30,7 +29,9 @@ export default function LatestPosts() {
 
         setPosts(postsList);
       } catch (error) {
-        console.error("Error al cargar el blog:", error);
+        if (error.code !== "permission-denied") {
+          console.error("Error al cargar los últimos artículos:", error);
+        }
       } finally {
         setIsLoading(false);
       }
