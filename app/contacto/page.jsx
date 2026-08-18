@@ -45,16 +45,16 @@ export default function ContactoPage() {
 								</div>
 							</li>
 							<li className='flex items-start gap-3'>
-              <MessageCircle className='h-5 w-5 text-primary mt-0.5' />
-              <a
-									href='https://api.whatsapp.com/send?phone=5493425051513&text=Hola%20Leandro%2C%20tengo%20una%20consulta.'
+								<MessageCircle className='h-5 w-5 text-primary mt-0.5' />
+								<a
+									href='https://api.whatsapp.com/send?phone=5493424790708&text=Hola%20Leandro%2C%20tengo%20una%20consulta.'
 									target='_blank'
 									rel='noopener noreferrer'
 									className='hover:text-foreground'
 								>
 									<div>
 										<p className='font-medium'>Whatsapp</p>
-										<p className='text-muted-foreground'>+54 342 5051513</p>
+										<p className='text-muted-foreground'>+54 342 4790708</p>
 									</div>
 								</a>
 							</li>

@@ -1,14 +1,13 @@
-import Hero from '@/components/hero';
 import AboutPreview from '@/components/about-preview';
-import Services from '@/components/services';
-import UpcomingEvents from '@/components/upcoming-events';
-import LeadMagnet from '@/components/lead-magnet';
-import LatestPosts from '@/components/latest-posts';
-import Testimonials from '@/components/testimonials';
-import ContactForm from '@/components/contact-form';
 import CallToAction from '@/components/call-to-action';
-import WhatsAppButton from "@/components/whatsapp-button"
-
+import ContactForm from '@/components/contact-form';
+import Hero from '@/components/hero';
+import LatestPosts from '@/components/latest-posts';
+import LeadMagnet from '@/components/lead-magnet';
+import Services from '@/components/services';
+import Testimonials from '@/components/testimonials';
+import UpcomingEvents from '@/components/upcoming-events';
+import WhatsAppButton from '@/components/whatsapp-button';
 
 export default function Home() {
 	return (
@@ -17,7 +16,7 @@ export default function Home() {
 			<AboutPreview />
 			<Services />
 			{/*<Testimonials />*/}
-			
+
 			<UpcomingEvents />
 			<LeadMagnet />
 			<LatestPosts />
@@ -42,3 +41,4 @@ export default function Home() {
 		</div>
 	);
 }
+

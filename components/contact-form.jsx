@@ -1,10 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
 	Select,
 	SelectContent,
@@ -12,9 +7,15 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { toast } from '@/components/ui/use-toast';
-import { Toaster } from '@/components/ui/toaster';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Toaster } from '@/components/ui/toaster';
+import { toast } from '@/components/ui/use-toast';
+import { useState } from 'react';
 
 export default function ContactForm() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,8 +23,8 @@ export default function ContactForm() {
 		name: '',
 		email: '',
 		phone: '',
-		service: '',
-		message: '',
+		/* 		service: '',
+		 */ message: '',
 	});
 
 	const handleChange = (e) => {
@@ -31,9 +32,9 @@ export default function ContactForm() {
 		setFormData((prev) => ({ ...prev, [name]: value }));
 	};
 
-	const handleSelectChange = (value) => {
+	/* const handleSelectChange = (value) => {
 		setFormData((prev) => ({ ...prev, service: value }));
-	};
+	}; */
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -51,8 +52,8 @@ export default function ContactForm() {
 					name: formData.name,
 					email: formData.email,
 					phone: formData.phone,
-					service: formData.service,
-					message: formData.message,
+					/* 					service: formData.service,
+					 */ message: formData.message,
 					_subject: `Nuevo contacto de ${formData.name}`,
 				}),
 			});
@@ -71,8 +72,8 @@ export default function ContactForm() {
 				name: '',
 				email: '',
 				phone: '',
-				service: '',
-				message: '',
+				/* 				service: '',
+				 */ message: '',
 			});
 		} catch (error) {
 			console.error('Error:', error);
@@ -88,7 +89,7 @@ export default function ContactForm() {
 	};
 
 	return (
-			<div>
+		<div>
 			<div className='mx-auto max-w-7xl px-6 lg:px-8'>
 				<form onSubmit={handleSubmit} className='space-y-6'>
 					<div className='grid grid-cols-1 gap-6 sm:grid-cols-2'>
@@ -123,7 +124,7 @@ export default function ContactForm() {
 								onChange={handleChange}
 							/>
 						</div>
-						<div>
+						{/* <div>
 							<Label htmlFor='service'>Servicio de interés</Label>
 							<Select
 								name='service'
@@ -143,7 +144,7 @@ export default function ContactForm() {
 									<SelectItem value='dudas'>No estoy seguro/a</SelectItem>
 								</SelectContent>
 							</Select>
-						</div>
+						</div> */}
 					</div>
 					<div>
 						<Label htmlFor='message'>Mensaje</Label>
@@ -169,8 +170,7 @@ export default function ContactForm() {
 				</form>
 				<div className='mt-8'></div>
 			</div>
-			</div>
-		
+		</div>
 	);
 }
 
