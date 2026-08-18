@@ -3,8 +3,6 @@
 import { AlertCircle, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { app, db, storage } from '@/lib/firebase';
-// Importar las funciones de Firestore correctamente
-import { collection, getDocs } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -14,6 +12,7 @@ export default function FirebaseStatus() {
 		checking: true,
 		connected: false,
 		error: null,
+		warning: null,
 		config: {},
 	});
 
@@ -32,40 +31,33 @@ export default function FirebaseStatus() {
 				measurementId: process.env.NEXT_PUBLIC_MEASUREMENTID || '',
 			};
 
-			// Verificar si hay variables de entorno faltantes
-			const missingVars = Object.entries(config)
+			const requiredConfig = {
+				apiKey: config.apiKey,
+				authDomain: config.authDomain,
+				projectId: config.projectId,
+				storageBucket: config.storageBucket,
+				messagingSenderId: config.messagingSenderId,
+				appId: config.appId,
+			};
+
+			// Verificar si hay variables de entorno obligatorias faltantes
+			const missingVars = Object.entries(requiredConfig)
 				.filter(([_, value]) => !value)
 				.map(([key]) => key);
 
 			// Verificar si Firebase está inicializado correctamente
 			const isInitialized = app && db && storage;
 
-			// Intentar una operación simple para verificar la conexión
-			let connectionTest = false;
-			if (
-				isInitialized &&
-				config.projectId &&
-				typeof collection === 'function' &&
-				typeof getDocs === 'function'
-			) {
-				try {
-					// Intentar acceder a una colección (sin leer datos)
-					const querySnapshot = await getDocs(
-						collection(db, '_test_connection')
-					);
-					connectionTest = true;
-				} catch (err) {
-					console.error('Error al probar la conexión:', err);
-				}
-			}
-
 			setStatus({
 				checking: false,
-				connected: isInitialized && connectionTest,
+				connected: Boolean(isInitialized && missingVars.length === 0),
 				error:
 					missingVars.length > 0
 						? `Faltan variables de entorno: ${missingVars.join(', ')}`
 						: null,
+				warning: !config.measurementId
+					? 'Measurement ID no configurado. Firebase funciona igual; solo puede afectar Analytics.'
+					: null,
 				config,
 			});
 		} catch (error) {
@@ -74,6 +66,7 @@ export default function FirebaseStatus() {
 				checking: false,
 				connected: false,
 				error: error.message,
+				warning: null,
 				config: {},
 			});
 		}
@@ -113,16 +106,22 @@ export default function FirebaseStatus() {
 					{status.checking ? (
 						<p>Verificando conexión a Firebase...</p>
 					) : status.connected ? (
-						<p className='text-green-600'>Firebase conectado correctamente</p>
+						<div className='space-y-1'>
+							<p className='text-green-600'>Firebase inicializado correctamente</p>
+							{status.warning && (
+								<p className='text-xs bg-yellow-50 text-yellow-800 p-2 rounded'>
+									{status.warning}
+								</p>
+							)}
+						</div>
 					) : (
 						<div className='text-red-500 space-y-1'>
-							<p>No se pudo conectar a Firebase</p>
+							<p>No se pudo inicializar Firebase</p>
 							{status.error && (
 								<p className='text-xs bg-red-50 p-2 rounded'>{status.error}</p>
 							)}
 							<p className='text-xs text-gray-500 mt-2'>
-								La aplicación está funcionando en modo offline. Los datos se
-								guardarán localmente.
+								Revisá las variables obligatorias de Firebase en el entorno.
 							</p>
 						</div>
 					)}
