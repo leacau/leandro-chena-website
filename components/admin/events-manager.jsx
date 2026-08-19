@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import { Pencil, Trash2, Upload, Loader2, Copy, Check, X, Save, Plus, Users } from "lucide-react"
 import { db, storage } from "@/lib/firebase"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, writeBatch } from "firebase/firestore"
@@ -779,7 +779,7 @@ export default function EventsManager() {
           margin: 1.5rem auto;
         }
         .ProseMirror blockquote {
-          border-left: 4px solid var(--primary);
+          border-left: 4px solid hsl(var(--primary));
           padding-left: 1rem;
           color: var(--muted-foreground);
         }

@@ -19,14 +19,14 @@ export default function Hero() {
 						resultados extraordinarios.
 					</p>
 					<div className='mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-x-6'>
-						<Button size='lg' asChild className='w-full sm:w-auto'>
+						<Button size='lg' asChild className='w-full sm:w-auto py-3 px-3'>
 							<Link href='/contacto'>Descubrí cómo puedo ayudarte</Link>
 						</Button>
 						<Button
 							variant='outline'
 							size='lg'
 							asChild
-							className='w-full sm:w-auto'
+							className='w-full sm:w-auto px-3 py-3'
 						>
 							<Link href='/servicios'>Conocé mis servicios</Link>
 						</Button>

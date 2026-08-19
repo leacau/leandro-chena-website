@@ -1,91 +1,76 @@
-'use client';
-
-import { ArrowLeft, Loader2 } from 'lucide-react';
-import { use, useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebase';
+import { notFound } from 'next/navigation';
 
-export default function BlogPostPage({ params }) {
-	// Usar React.use() para desenvolver los parámetros
-	const unwrappedParams = use(params);
-	const { slug } = unwrappedParams;
+export const dynamic = 'force-dynamic';
 
-	const router = useRouter();
-	const [post, setPost] = useState(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(false);
+function stripHtml(value = '') {
+	return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
-	useEffect(() => {
-		async function loadPost() {
-			try {
-				setLoading(true);
-				setError(false);
-
-				// Importar Firebase dinámicamente
-				const { db } = await import('@/lib/firebase');
-				const { collection, query, where, getDocs } = await import(
-					'firebase/firestore'
-				);
-
-				// Consultar Firestore
-				const postsQuery = query(
-					collection(db, 'blogPosts'),
-					where('slug', '==', slug)
-				);
-				const querySnapshot = await getDocs(postsQuery);
-
-				if (querySnapshot.empty) {
-					setError(true);
-					return;
-				}
-
-				// Obtener el primer documento que coincida
-				const postDoc = querySnapshot.docs[0];
-				const postData = {
-					id: postDoc.id,
-					...postDoc.data(),
-				};
-
-				setPost(postData);
-			} catch (err) {
-				console.error('Error al cargar el post:', err);
-				setError(true);
-			} finally {
-				setLoading(false);
-			}
-		}
-
-		loadPost();
-	}, [slug]);
-
-	// Mostrar estado de carga
-	if (loading) {
-		return (
-			<div className='container mx-auto py-12 flex justify-center items-center'>
-				<Loader2 className='h-8 w-8 animate-spin text-primary' />
-				<span className='ml-2'>Cargando artículo...</span>
-			</div>
+async function getPost(slug) {
+	try {
+		const postsQuery = query(
+			collection(db, 'blogPosts'),
+			where('slug', '==', slug)
 		);
+		const querySnapshot = await getDocs(postsQuery);
+
+		if (querySnapshot.empty) return null;
+
+		const postDoc = querySnapshot.docs[0];
+		return {
+			id: postDoc.id,
+			...postDoc.data(),
+		};
+	} catch (err) {
+		console.error('Error al cargar el post:', err);
+		return null;
+	}
+}
+
+export async function generateMetadata({ params }) {
+	const { slug } = await params;
+	const post = await getPost(slug);
+
+	if (!post) {
+		return {
+			title: 'Artículo no encontrado | Leandro Chena',
+		};
 	}
 
-	// Mostrar error
-	if (error || !post) {
-		return (
-			<div className='container mx-auto py-12 px-4 text-center'>
-				<h1 className='text-2xl font-bold mb-4'>Error al cargar el artículo</h1>
-				<p className='mb-8'>
-					Lo sentimos, ha ocurrido un error al cargar este artículo.
-				</p>
-				<Button asChild>
-					<Link href='/blog'>Volver al blog</Link>
-				</Button>
-			</div>
-		);
-	}
+	const title = `${post.title || 'Artículo'} | Leandro Chena`;
+	const description =
+		post.description || stripHtml(post.content).slice(0, 155) || undefined;
 
-	// Asegurar que todos los campos necesarios existan
+	return {
+		title,
+		description,
+		openGraph: {
+			title,
+			description,
+			type: 'article',
+			images: post.image ? [{ url: post.image, alt: post.title }] : [],
+		},
+		twitter: {
+			card: post.image ? 'summary_large_image' : 'summary',
+			title,
+			description,
+			images: post.image ? [post.image] : [],
+		},
+	};
+}
+
+export default async function BlogPostPage({ params }) {
+	const { slug } = await params;
+	const post = await getPost(slug);
+
+	if (!post) notFound();
+
 	const safePost = {
 		title: post.title || 'Sin título',
 		date: post.date || 'Sin fecha',
@@ -113,10 +98,6 @@ export default function BlogPostPage({ params }) {
 							src={safePost.image || '/placeholder.svg'}
 							alt={safePost.title}
 							className='w-full h-full object-cover'
-							onError={(e) => {
-								e.target.onerror = null;
-								e.target.src = '/placeholder.svg?height=400&width=800';
-							}}
 						/>
 					</div>
 				)}
@@ -150,9 +131,9 @@ export default function BlogPostPage({ params }) {
 					</Button>
 				</div>
 			</div>
-			<style jsx global>{`
+			<style>{`
 				.blog-content blockquote {
-					border-left: 4px solid var(--primary);
+					border-left: 4px solid hsl(var(--primary));
 					padding-left: 1rem;
 					margin-left: 0;
 					margin-right: 0;
@@ -167,4 +148,3 @@ export default function BlogPostPage({ params }) {
 		</div>
 	);
 }
-

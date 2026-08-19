@@ -20,14 +20,14 @@ export default function CallToAction() {
 							size='lg'
 							variant='secondary'
 							asChild
-							className='w-full sm:w-auto hover:bg-primary-foreground/20'
+							className='w-full sm:w-auto hover:bg-primary-foreground/20 py-3 px-3'
 						>
 							<Link href='/contacto'>Agendá una consulta</Link>
 						</Button>
 						<Button
 							size='lg'
 							variant='outline'
-							className='w-full sm:w-auto bg-transparent text-white hover:bg-primary-foreground/20 border-primary-foreground/10 bg-green-900'
+							className='w-full sm:w-auto bg-transparent text-white hover:bg-primary-foreground/20 border-primary-foreground/10 bg-green-900 py-3 px-3'
 							asChild
 						>
 							<Link href='/recursos'>Explorá recursos gratuitos</Link>

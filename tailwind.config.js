@@ -25,11 +25,11 @@ module.exports = {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#00905E', // Color de marca hardcodeado
+					DEFAULT: 'hsl(var(--primary) / <alpha-value>)',
 					foreground: 'hsl(var(--primary-foreground))',
 				},
 				secondary: {
-					DEFAULT: 'hsl(var(--secondary))',
+					DEFAULT: 'hsl(var(--secondary) / <alpha-value>)',
 					foreground: 'hsl(var(--secondary-foreground))',
 				},
 				destructive: {
@@ -76,4 +76,3 @@ module.exports = {
 	},
 	plugins: [require('tailwindcss-animate')],
 };
-

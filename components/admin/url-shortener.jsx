@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { db } from '@/lib/firebase';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export default function UrlShortener() {
 	const [longUrl, setLongUrl] = useState('');
@@ -84,12 +84,14 @@ export default function UrlShortener() {
 	// Validar URL
 	const isValidUrl = (url) => {
 		try {
-			new URL(url);
-			return true;
+			const parsedUrl = new URL(url);
+			return ['http:', 'https:'].includes(parsedUrl.protocol);
 		} catch (e) {
 			return false;
 		}
 	};
+
+	const isValidSlug = (slug) => /^[a-zA-Z0-9_-]+$/.test(slug);
 
 	// Verificar si un slug ya existe
 	const slugExists = async (slug) => {
@@ -136,6 +138,17 @@ export default function UrlShortener() {
 					isUnique = !(await slugExists(slug));
 				}
 			} else {
+				if (!isValidSlug(slug)) {
+					toast({
+						title: 'Error',
+						description:
+							'El slug solo puede contener letras, números, guiones y guiones bajos.',
+						variant: 'destructive',
+					});
+					setIsLoading(false);
+					return;
+				}
+
 				// Verificar si el slug personalizado ya existe
 				if (await slugExists(slug)) {
 					toast({
@@ -357,4 +370,3 @@ export default function UrlShortener() {
 		</div>
 	);
 }
-

@@ -1,150 +1,142 @@
-"use client";
-
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Calendar, Clock, Loader2, MapPin } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { EventSignupDialog } from '@/components/event-signup-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
+import { db } from '@/lib/firebase';
+import { notFound } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 const isRegistrationClosed = (dateStr, timeStr) => {
-  try {
-    if (!dateStr || !timeStr) return false;
+	try {
+		if (!dateStr || !timeStr) return false;
 
-    let year, month, day;
-    if (dateStr.includes('/')) {
-      const parts = dateStr.split('/');
-      if (parts[0].length === 4) { 
-        [year, month, day] = parts;
-      } else { 
-        [day, month, year] = parts;
-      }
-    } else if (dateStr.includes('-')) {
-      const parts = dateStr.split('-');
-      if (parts[0].length === 4) { 
-        [year, month, day] = parts;
-      } else { 
-        [day, month, year] = parts;
-      }
-    } else {
-      return false; 
-    }
-
-    const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
-    let hour = 0;
-    let minute = 0;
-    if (timeMatch) {
-      hour = parseInt(timeMatch[1], 10);
-      minute = parseInt(timeMatch[2], 10);
-
-      if (timeStr.toLowerCase().includes('pm') && hour < 12) {
-        hour += 12;
-      }
-    }
-
-    const eventDate = new Date(year, month - 1, day, hour, minute);
-    const now = new Date();
-
-    const diffMs = eventDate.getTime() - now.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-
-    return diffHours <= 2;
-  } catch (e) {
-    console.error("Error validando fecha/hora", e);
-    return false;
-  }
-}
-
-export default function EventoPage({ params }) {
-	const { id } = params;
-	const [isLoading, setIsLoading] = useState(true);
-	const [eventData, setEventData] = useState(null);
-	const [error, setError] = useState(null);
-	
-	const safeEvent = useMemo(() => {
-		if (!eventData) {
-			return null;
+		let year, month, day;
+		if (dateStr.includes('/')) {
+			const parts = dateStr.split('/');
+			if (parts[0].length === 4) {
+				[year, month, day] = parts;
+			} else {
+				[day, month, year] = parts;
+			}
+		} else if (dateStr.includes('-')) {
+			const parts = dateStr.split('-');
+			if (parts[0].length === 4) {
+				[year, month, day] = parts;
+			} else {
+				[day, month, year] = parts;
+			}
+		} else {
+			return false;
 		}
 
-		return {
-			id: eventData.id,
-			title: eventData.title || 'Evento sin título',
-			date: eventData.date || 'Fecha a confirmar',
-			time: eventData.time || 'Horario a confirmar',
-			location: eventData.location || 'Ubicación a confirmar',
-			description: eventData.description || '',
-			longDescription: eventData.longDescription || '',
-			content: eventData.content || '',
-			image: eventData.image || null,
-            isLive: eventData.isLive || false,
-            meetLink: eventData.meetLink || '',
-		};
-	}, [eventData]);
+		const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
+		let hour = 0;
+		let minute = 0;
+		if (timeMatch) {
+			hour = parseInt(timeMatch[1], 10);
+			minute = parseInt(timeMatch[2], 10);
 
-	useEffect(() => {
-		const fetchEvent = async () => {
-			try {
-				const [{ db }, { doc, getDoc }] = await Promise.all([
-					import('@/lib/firebase'),
-					import('firebase/firestore'),
-				]);
-				const eventRef = doc(db, 'events', id);
-				const eventSnap = await getDoc(eventRef);
-
-				if (!eventSnap.exists()) {
-					setError('Evento no encontrado.');
-					return;
-				}
-
-				setEventData({
-					id: eventSnap.id,
-					...eventSnap.data(),
-				});
-			} catch (err) {
-				console.error('Error al cargar el evento:', err);
-				setError('Hubo un problema al cargar el evento.');
-			} finally {
-				setIsLoading(false);
+			if (timeStr.toLowerCase().includes('pm') && hour < 12) {
+				hour += 12;
 			}
+		}
+
+		const eventDate = new Date(year, month - 1, day, hour, minute);
+		const now = new Date();
+		const diffMs = eventDate.getTime() - now.getTime();
+		const diffHours = diffMs / (1000 * 60 * 60);
+
+		return diffHours <= 2;
+	} catch (e) {
+		console.error('Error validando fecha/hora', e);
+		return false;
+	}
+};
+
+function stripHtml(value = '') {
+	return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+async function getEvent(id) {
+	try {
+		const eventSnap = await getDoc(doc(db, 'events', id));
+
+		if (!eventSnap.exists()) return null;
+
+		return {
+			id: eventSnap.id,
+			...eventSnap.data(),
 		};
-
-		fetchEvent();
-	}, [id]);
-
-	if (isLoading) {
-			return (
-				<div className='container mx-auto py-12 flex justify-center items-center'>
-					<Loader2 className='h-8 w-8 animate-spin text-primary' />
-					<span className='ml-2'>Cargando evento...</span>
-				</div>
-		);
-	}
-
-	if (error || !eventData) {
-		return (
-			<div className='container mx-auto py-12 px-4 text-center'>
-				<h1 className='text-2xl font-bold mb-4'>Error al cargar el evento</h1>
-				<p className='mb-8'>
-					{error || 'Lo sentimos, ha ocurrido un error al cargar este evento.'}
-				</p>
-				<Button asChild>
-					<Link href='/eventos'>Volver a eventos</Link>
-				</Button>
-			</div>
-		);
-	}
-
-	if (!safeEvent) {
+	} catch (err) {
+		console.error('Error al cargar el evento:', err);
 		return null;
 	}
+}
+
+export async function generateMetadata({ params }) {
+	const { id } = await params;
+	const event = await getEvent(id);
+
+	if (!event) {
+		return {
+			title: 'Evento no encontrado | Leandro Chena',
+		};
+	}
+
+	const title = `${event.title || 'Evento'} | Leandro Chena`;
+	const description =
+		event.description ||
+		stripHtml(event.longDescription || event.content).slice(0, 155) ||
+		undefined;
+
+	return {
+		title,
+		description,
+		openGraph: {
+			title,
+			description,
+			type: 'article',
+			images: event.image ? [{ url: event.image, alt: event.title }] : [],
+		},
+		twitter: {
+			card: event.image ? 'summary_large_image' : 'summary',
+			title,
+			description,
+			images: event.image ? [event.image] : [],
+		},
+	};
+}
+
+export default async function EventoPage({ params }) {
+	const { id } = await params;
+	const eventData = await getEvent(id);
+
+	if (!eventData) notFound();
+
+	const safeEvent = {
+		id: eventData.id,
+		title: eventData.title || 'Evento sin título',
+		date: eventData.date || 'Fecha a confirmar',
+		time: eventData.time || 'Horario a confirmar',
+		location: eventData.location || 'Ubicación a confirmar',
+		description: eventData.description || '',
+		longDescription: eventData.longDescription || '',
+		content: eventData.content || '',
+		image: eventData.image || null,
+		isLive: eventData.isLive || false,
+		meetLink: eventData.meetLink || '',
+	};
 
 	const hasRichContent = Boolean(
 		(safeEvent.longDescription && safeEvent.longDescription.trim()) ||
 			(safeEvent.content && safeEvent.content.trim())
 	);
 
-    const isClosed = isRegistrationClosed(safeEvent.date, safeEvent.time);
+	const isClosed = isRegistrationClosed(safeEvent.date, safeEvent.time);
 
 	return (
 		<div className='container mx-auto py-12 px-4'>
@@ -157,35 +149,30 @@ export default function EventoPage({ params }) {
 					Volver a eventos
 				</Link>
 
-					{safeEvent.image && (
-						<div className='w-full mb-8 rounded-lg overflow-hidden border relative'>
-                             {/* Cinta de CERRADO / EN VIVO en página de detalle */}
-                            {safeEvent.isLive ? (
-                                <div className="absolute top-8 -right-16 w-64 text-center bg-red-600 text-white py-2 shadow-lg z-10 transform rotate-45 font-bold tracking-wider">
-                                    EN VIVO
-                                </div>
-                            ) : isClosed && (
-                                <div className="absolute top-8 -right-16 w-64 text-center bg-destructive text-destructive-foreground py-2 shadow-lg z-10 transform rotate-45 font-bold tracking-wider">
-                                    CERRADO
-                                </div>
-                            )}
-							<div className='relative aspect-[16/9]'>
-								<Image
-									src={
-										safeEvent.image || '/placeholder.svg?height=720&width=1280'
-									}
-									alt={safeEvent.title}
-									fill
-									className='object-cover'
-									priority
-									onError={(e) => {
-										e.target.onerror = null;
-										e.target.src = '/placeholder.svg?height=720&width=1280';
-									}}
-								/>
+				{safeEvent.image && (
+					<div className='w-full mb-8 rounded-lg overflow-hidden border relative'>
+						{safeEvent.isLive ? (
+							<div className='absolute top-8 -right-16 w-64 text-center bg-red-600 text-white py-2 shadow-lg z-10 transform rotate-45 font-bold tracking-wider'>
+								EN VIVO
 							</div>
+						) : (
+							isClosed && (
+								<div className='absolute top-8 -right-16 w-64 text-center bg-destructive text-destructive-foreground py-2 shadow-lg z-10 transform rotate-45 font-bold tracking-wider'>
+									CERRADO
+								</div>
+							)
+						)}
+						<div className='relative aspect-[16/9]'>
+							<Image
+								src={safeEvent.image || '/placeholder.svg?height=720&width=1280'}
+								alt={safeEvent.title}
+								fill
+								className='object-cover'
+								priority
+							/>
 						</div>
-					)}
+					</div>
+				)}
 
 				<h1 className='text-3xl md:text-4xl font-bold mb-4'>
 					{safeEvent.title}
@@ -226,42 +213,47 @@ export default function EventoPage({ params }) {
 				)}
 
 				<div className='mt-12 pt-8 border-t flex flex-col sm:flex-row gap-4'>
-                    {safeEvent.isLive ? (
-                        <EventSignupDialog
-                            eventId={safeEvent.id}
-                            eventTitle={safeEvent.title}
-                            isLive={true}
-                            meetLink={safeEvent.meetLink}
-                            triggerClassName='flex-1 bg-red-600 hover:bg-red-700 text-white'
-                            triggerSize='lg'
-                            fullWidth
-                        />
-                    ) : isClosed ? (
-                        <Button variant="secondary" size="lg" className="flex-1 opacity-70 cursor-not-allowed" disabled>
-                            Inscripciones Cerradas
-                        </Button>
-                    ) : (
-                        <EventSignupDialog
-                            eventId={safeEvent.id}
-                            eventTitle={safeEvent.title}
-                            triggerClassName='flex-1'
-                            triggerSize='lg'
-                            fullWidth
-                        />
-                    )}
+					{safeEvent.isLive ? (
+						<EventSignupDialog
+							eventId={safeEvent.id}
+							eventTitle={safeEvent.title}
+							isLive={true}
+							meetLink={safeEvent.meetLink}
+							triggerClassName='flex-1 bg-red-600 hover:bg-red-700 text-white'
+							triggerSize='lg'
+							fullWidth
+						/>
+					) : isClosed ? (
+						<Button
+							variant='secondary'
+							size='lg'
+							className='flex-1 opacity-70 cursor-not-allowed'
+							disabled
+						>
+							Inscripciones Cerradas
+						</Button>
+					) : (
+						<EventSignupDialog
+							eventId={safeEvent.id}
+							eventTitle={safeEvent.title}
+							triggerClassName='flex-1'
+							triggerSize='lg'
+							fullWidth
+						/>
+					)}
 					<Button variant='outline' size='lg' asChild className='flex-1'>
 						<Link href='/eventos'>Ver otros eventos</Link>
 					</Button>
 				</div>
 			</div>
-			<style jsx global>{styles}</style>
+			<style>{styles}</style>
 		</div>
 	);
 }
 
 const styles = `
 .event-content blockquote {
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid hsl(var(--primary));
   padding-left: 1rem;
   margin-left: 0;
   margin-right: 0;

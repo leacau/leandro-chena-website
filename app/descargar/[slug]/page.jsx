@@ -1,6 +1,4 @@
-'use client';
-
-import { ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import {
 	collection,
 	doc,
@@ -10,78 +8,71 @@ import {
 	updateDoc,
 	where,
 } from 'firebase/firestore';
-import { use, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
 
-export default function DownloadPage({ params }) {
-	// Usar React.use() para desenvolver los parámetros
-	const unwrappedParams = use(params);
-	const { slug } = unwrappedParams;
+export const dynamic = 'force-dynamic';
 
-	const router = useRouter();
-	const [fileData, setFileData] = useState(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
+async function getFile(slug) {
+	try {
+		const filesCollection = collection(db, 'files');
+		const fileQuery = query(filesCollection, where('slug', '==', slug));
+		const querySnapshot = await getDocs(fileQuery);
 
-	useEffect(() => {
-		async function loadFile() {
-			try {
-				setLoading(true);
-				setError(null);
+		if (querySnapshot.empty) return null;
 
-				// Buscar el archivo en Firestore por slug
-				const filesCollection = collection(db, 'files');
-				const fileQuery = query(filesCollection, where('slug', '==', slug));
-				const querySnapshot = await getDocs(fileQuery);
+		const fileDoc = querySnapshot.docs[0];
+		return {
+			id: fileDoc.id,
+			...fileDoc.data(),
+		};
+	} catch (error) {
+		console.error('Error al cargar el archivo:', error);
+		return null;
+	}
+}
 
-				if (querySnapshot.empty) {
-					setError('Archivo no encontrado');
-					setLoading(false);
-					return;
-				}
+export async function generateMetadata({ params }) {
+	const { slug } = await params;
+	const fileData = await getFile(slug);
 
-				// Usar el primer documento que coincida
-				const fileDoc = querySnapshot.docs[0];
-				const file = {
-					id: fileDoc.id,
-					...fileDoc.data(),
-				};
+	if (!fileData) {
+		return {
+			title: 'Archivo no encontrado | Leandro Chena',
+			robots: { index: false, follow: false },
+		};
+	}
 
-				setFileData(file);
+	const title = `${fileData.name || 'Descarga'} | Leandro Chena`;
+	const description =
+		fileData.description ||
+		`Descargá ${fileData.name || 'este recurso'} de Leandro Chena.`;
 
-				// Incrementar el contador de descargas
-				try {
-					const fileDocRef = doc(db, 'files', fileDoc.id);
-					await updateDoc(fileDocRef, {
-						downloads: increment(1),
-					});
-				} catch (updateError) {
-					console.error(
-						'Error al actualizar contador de descargas:',
-						updateError
-					);
-					// Continuar aunque falle el contador
-				}
-			} catch (error) {
-				console.error('Error al cargar el archivo:', error);
-				setError('Error al cargar la información del archivo');
-			} finally {
-				setLoading(false);
-			}
-		}
+	return {
+		title,
+		description,
+		robots: { index: false, follow: true },
+		openGraph: {
+			title,
+			description,
+		},
+		twitter: {
+			card: 'summary',
+			title,
+			description,
+		},
+	};
+}
 
-		loadFile();
-	}, [slug]);
+export default async function DownloadPage({ params }) {
+	const { slug } = await params;
+	const fileData = await getFile(slug);
 
-	// Preparar la URL para la descarga con el nombre de archivo correcto
 	const getDownloadUrl = () => {
 		if (!fileData) return '#';
 
-		// Intentar añadir el Content-Disposition para que se descargue con el nombre correcto
 		try {
 			const url = new URL(fileData.storageURL);
 			url.searchParams.append(
@@ -92,21 +83,11 @@ export default function DownloadPage({ params }) {
 			);
 			return url.toString();
 		} catch (e) {
-			// Si hay error al manipular la URL, devolver la original
 			return fileData.storageURL;
 		}
 	};
 
-	if (loading) {
-		return (
-			<div className='container mx-auto py-12 flex flex-col items-center justify-center'>
-				<Loader2 className='h-8 w-8 animate-spin text-primary mb-4' />
-				<span>Preparando archivo para descargar...</span>
-			</div>
-		);
-	}
-
-	if (error || !fileData) {
+	if (!fileData) {
 		return (
 			<div className='container mx-auto py-12 px-4'>
 				<div className='max-w-lg mx-auto text-center'>
@@ -121,6 +102,15 @@ export default function DownloadPage({ params }) {
 				</div>
 			</div>
 		);
+	}
+
+	try {
+		const fileDocRef = doc(db, 'files', fileData.id);
+		await updateDoc(fileDocRef, {
+			downloads: increment(1),
+		});
+	} catch (updateError) {
+		console.error('Error al actualizar contador de descargas:', updateError);
 	}
 
 	return (
@@ -173,4 +163,3 @@ export default function DownloadPage({ params }) {
 		</div>
 	);
 }
-

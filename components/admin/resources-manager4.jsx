@@ -51,7 +51,7 @@ import { Label } from '@/components/ui/label';
 import NextLink from 'next/link';
 import Script from 'next/script';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ResourcesManager() {
 	const [resources, setResources] = useState([]);
@@ -801,4 +801,3 @@ export default function ResourcesManager() {
 		</>
 	);
 }
-

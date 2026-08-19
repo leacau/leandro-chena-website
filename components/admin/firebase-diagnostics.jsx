@@ -4,8 +4,8 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react"
-import { db } from "@/lib/firebase"
-import { collection, getDocs, addDoc, doc, deleteDoc } from "firebase/firestore"
+import { app, db } from "@/lib/firebase"
+import { doc, getDoc } from "firebase/firestore"
 
 export default function FirebaseDiagnostics() {
   const [status, setStatus] = useState("loading") // loading, success, error
@@ -16,12 +16,13 @@ export default function FirebaseDiagnostics() {
   useEffect(() => {
     // Verificar variables de entorno
     const vars = {
-      apiKey: process.env.NEXT_PUBLIC_apiKey || "",
-      authDomain: process.env.NEXT_PUBLIC_authDomain || "",
-      projectId: process.env.NEXT_PUBLIC_projectId || "",
-      storageBucket: process.env.NEXT_PUBLIC_storageBucket || "",
-      messagingSenderId: process.env.NEXT_PUBLIC_messagingSenderId || "",
-      appId: process.env.NEXT_PUBLIC_appId || "",
+      apiKey: process.env.NEXT_PUBLIC_APIKEY || "",
+      authDomain: process.env.NEXT_PUBLIC_AUTHDOMAIN || "",
+      projectId: process.env.NEXT_PUBLIC_PROJECTID || "",
+      storageBucket: process.env.NEXT_PUBLIC_STORAGEBUCKET || "",
+      messagingSenderId: process.env.NEXT_PUBLIC_MESSAGINGSENDERID || "",
+      appId: process.env.NEXT_PUBLIC_APPID || "",
+      measurementId: process.env.NEXT_PUBLIC_MEASUREMENTID || "",
     }
 
     setEnvVars(vars)
@@ -42,45 +43,31 @@ export default function FirebaseDiagnostics() {
   const runConnectionTest = async () => {
     setTestResult({
       status: "loading",
-      message: "Probando conexión a Firestore...",
+      message: "Probando inicialización de Firebase...",
     })
 
     try {
-      // Intentar leer datos
-      const testCollection = collection(db, "_diagnostics")
-
-      // Crear un documento de prueba
-      const testData = {
-        timestamp: new Date().toISOString(),
-        test: "connection-test",
+      if (!app || !db) {
+        throw new Error("Firebase no está inicializado")
       }
 
-      // Añadir documento
-      const docRef = await addDoc(testCollection, testData)
-
-      // Verificar que se creó
-      const querySnapshot = await getDocs(testCollection)
-      let found = false
-
-      querySnapshot.forEach((doc) => {
-        if (doc.id === docRef.id) {
-          found = true
-        }
-      })
-
-      // Eliminar el documento de prueba
-      await deleteDoc(doc(db, "_diagnostics", docRef.id))
-
-      if (found) {
+      try {
+        await getDoc(doc(db, "config", "siteConfig"))
         setTestResult({
           status: "success",
-          message: "Conexión a Firestore exitosa. Se pudo escribir y leer datos.",
+          message: "Firebase está inicializado y Firestore respondió correctamente.",
         })
-      } else {
-        setTestResult({
-          status: "error",
-          message: "Se pudo escribir pero no leer los datos. Verifica los permisos.",
-        })
+      } catch (error) {
+        if (error.code === "permission-denied") {
+          setTestResult({
+            status: "warning",
+            message:
+              "Firebase está inicializado, pero las reglas actuales no permiten leer el documento de prueba.",
+          })
+          return
+        }
+
+        throw error
       }
     } catch (error) {
       console.error("Error en prueba de conexión:", error)
@@ -154,6 +141,13 @@ export default function FirebaseDiagnostics() {
                   {testResult.message}
                 </div>
               )}
+
+              {testResult.status === "warning" && (
+                <div className="flex items-center gap-2 text-sm text-yellow-600">
+                  <AlertCircle className="h-4 w-4" />
+                  {testResult.message}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -161,4 +155,3 @@ export default function FirebaseDiagnostics() {
     </Card>
   )
 }
-
