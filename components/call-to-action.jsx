@@ -18,7 +18,7 @@ export default function CallToAction() {
 					</p>
 					<div className='mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4'>
 						<BookMeetingDialog
-							triggerText='Agendar llamada de diagnóstico (15 min)'
+							triggerText='Agendar llamada de diagnóstico'
 							triggerVariant='secondary'
 							triggerSize='lg'
 							source='cta_section'

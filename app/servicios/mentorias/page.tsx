@@ -48,7 +48,7 @@ export default function MentoriasPage() {
 					</div>
 					<div className='flex flex-col sm:flex-row gap-4'>
 						<BookMeetingDialog
-							triggerText='Agendar llamada de diagnóstico (15 min)'
+							triggerText='Agendar llamada de diagnóstico'
 							triggerSize='lg'
 							source='servicio_mentorias_hero'
 						/>
@@ -102,7 +102,7 @@ export default function MentoriasPage() {
 			<div className='text-center bg-primary/5 py-16 px-6 rounded-2xl border border-primary/10 max-w-4xl mx-auto'>
 				<h2 className='text-3xl font-bold mb-4'>Da el próximo paso en tu liderazgo comercial</h2>
 				<p className='text-lg text-muted-foreground max-w-2xl mx-auto mb-8'>
-					Agendá una sesión inicial de 15 minutos para conocernos y evaluar si la mentoría es lo que hoy necesitás.
+					Agendá una sesión inicial de 30 minutos para conocernos y evaluar si la mentoría es lo que hoy necesitás.
 				</p>
 				<div className='flex flex-col sm:flex-row justify-center gap-4'>
 					<BookMeetingDialog

@@ -603,7 +603,7 @@ export default function CommercialDiagnosticQuiz() {
 							<div className='p-6 rounded-xl border bg-muted/30 text-center space-y-4'>
 								<div>
 									<h4 className='font-bold text-base sm:text-lg text-foreground'>
-										Coordiná una llamada de 15 minutos con Leandro
+										Coordiná una llamada de 30 minutos con Leandro
 									</h4>
 									<p className='text-xs sm:text-sm text-muted-foreground mt-1'>
 										Elegí un día y horario en su Google Calendar para evaluar tu caso de forma personalizada.
@@ -611,7 +611,7 @@ export default function CommercialDiagnosticQuiz() {
 								</div>
 								<div className='flex justify-center'>
 									<BookMeetingDialog
-										triggerText='Agendar llamada de diagnóstico (15 min)'
+										triggerText='Agendar llamada de diagnóstico'
 										triggerSize='lg'
 										source='diagnostic_quiz_result'
 										className='w-full sm:w-auto shadow-md'

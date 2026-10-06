@@ -21,7 +21,7 @@ export default function Hero() {
 					</p>
 					<div className='mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-4'>
 						<BookMeetingDialog
-							triggerText='Agendar llamada de diagnóstico (15 min)'
+							triggerText='Agendar llamada de diagnóstico'
 							triggerSize='lg'
 							source='hero_home'
 							className='shadow-md'

@@ -47,7 +47,7 @@ export default function ConsultoriaPage() {
 					</div>
 					<div className='flex flex-col sm:flex-row gap-4'>
 						<BookMeetingDialog
-							triggerText='Agendar llamada de diagnóstico (15 min)'
+							triggerText='Agendar llamada de diagnóstico'
 							triggerSize='lg'
 							source='servicio_consultoria_hero'
 						/>
@@ -107,7 +107,7 @@ export default function ConsultoriaPage() {
 					¿Listo para potenciar tu equipo comercial?
 				</h2>
 				<p className='text-lg text-muted-foreground max-w-2xl mx-auto mb-8'>
-					Coordinemos una llamada breve de 15 minutos para entender tu caso y
+					Coordinemos una llamada de diagnóstico de 30 minutos para entender tu caso y
 					analizar juntos la mejor alternativa.
 				</p>
 				<div className='flex flex-col sm:flex-row justify-center gap-4'>

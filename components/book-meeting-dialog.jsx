@@ -15,7 +15,7 @@ import { GOOGLE_CALENDAR_URL } from '@/lib/tracking-constants';
 import { trackEvent } from '@/lib/tracking';
 
 export default function BookMeetingDialog({
-	triggerText = 'Agendar llamada de diagnóstico (15 min)',
+	triggerText = 'Agendar llamada de diagnóstico',
 	triggerVariant = 'default',
 	triggerSize = 'lg',
 	className = '',
@@ -56,10 +56,10 @@ export default function BookMeetingDialog({
 				<DialogHeader className='pb-3 border-b'>
 					<DialogTitle className='flex items-center gap-2 text-xl font-bold text-foreground'>
 						<Clock className='h-5 w-5 text-primary' />
-						Llamada de Diagnóstico Comercial (15 min)
+						Llamada de Diagnóstico Comercial (30 min)
 					</DialogTitle>
 					<DialogDescription className='text-sm text-muted-foreground'>
-						Seleccioná el día y horario que mejor te quede para conversar directamente con Leandro.
+						Seleccioná el día y horario que mejor te quede para conversar durante 30 minutos directamente con Leandro.
 					</DialogDescription>
 				</DialogHeader>
 

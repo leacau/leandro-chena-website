@@ -112,11 +112,11 @@ export default function CharlasPage() {
 			<div className='text-center bg-primary/5 py-16 px-6 rounded-2xl border border-primary/10 max-w-4xl mx-auto'>
 				<h2 className='text-3xl font-bold mb-4'>Llevá inspiración a tu próximo evento</h2>
 				<p className='text-lg text-muted-foreground max-w-2xl mx-auto mb-8'>
-					Escribime o agendá una llamada corta para conversar sobre tu evento, fechas y audiencia.
+					Escribime o agendá una llamada de 30 minutos para conversar sobre tu evento, fechas y audiencia.
 				</p>
 				<div className='flex flex-col sm:flex-row justify-center gap-4'>
 					<BookMeetingDialog
-						triggerText='Agendar conversación (15 min)'
+						triggerText='Agendar conversación'
 						triggerSize='lg'
 						source='servicio_charlas_footer'
 					/>

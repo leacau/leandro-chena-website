@@ -101,7 +101,7 @@ export default function ServiciosPage() {
 				</p>
 				<div className='flex flex-col sm:flex-row justify-center items-center gap-4 max-w-xl mx-auto'>
 					<BookMeetingDialog
-						triggerText='Agendar llamada de diagnóstico (15 min)'
+						triggerText='Agendar llamada de diagnóstico'
 						triggerSize='lg'
 						source='servicios_index_footer'
 						className='w-full sm:w-auto'

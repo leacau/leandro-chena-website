@@ -43,7 +43,7 @@ export default function CapacitacionesPage() {
 					</div>
 					<div className='flex flex-col sm:flex-row gap-4'>
 						<BookMeetingDialog
-							triggerText='Agendar llamada de diagnóstico (15 min)'
+							triggerText='Agendar llamada de diagnóstico'
 							triggerSize='lg'
 							source='servicio_capacitaciones_hero'
 						/>
@@ -124,7 +124,7 @@ export default function CapacitacionesPage() {
 			<div className='text-center mt-12 bg-primary/5 py-16 px-6 rounded-2xl border border-primary/10 max-w-4xl mx-auto'>
 				<h2 className='text-3xl font-bold mb-4'>¿Listo para potenciar tu equipo comercial?</h2>
 				<p className='text-lg text-muted-foreground max-w-2xl mx-auto mb-8'>
-					Coordiná una llamada de diagnóstico de 15 minutos para diseñar un programa a la medida de tu equipo.
+					Coordiná una llamada de diagnóstico de 30 minutos para diseñar un programa a la medida de tu equipo.
 				</p>
 				<div className='flex flex-col sm:flex-row justify-center gap-4'>
 					<BookMeetingDialog
