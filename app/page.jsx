@@ -24,10 +24,10 @@ export default function Home() {
 						Evaluación Comercial Rápida
 					</span>
 					<h2 className='text-3xl font-bold tracking-tight sm:text-4xl'>
-						Descubrí la solución exacta para tu situación comercial
+						¿Cuál es tu situación comercial?
 					</h2>
 					<p className='mt-4 text-lg text-muted-foreground max-w-2xl mx-auto'>
-						Respondé 3 preguntas breves y obtené una recomendación a medida, ya seas dueño de empresa, líder de equipo o profesional independiente.
+						Respondé 3 preguntas breves para analizar tu caso y evaluar juntos qué alternativa tiene más sentido para vos o tu equipo.
 					</p>
 				</div>
 				<CommercialDiagnosticQuiz />

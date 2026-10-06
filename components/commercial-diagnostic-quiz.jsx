@@ -22,9 +22,11 @@ import {
 	Target,
 	DollarSign,
 	Loader2,
+	MessageCircle,
 } from 'lucide-react';
 import BookMeetingDialog from '@/components/book-meeting-dialog';
 import { toast } from '@/hooks/use-toast';
+import { WHATSAPP_PHONE } from '@/lib/tracking-constants';
 import {
 	captureUrlParams,
 	getMetaCookies,
@@ -174,6 +176,19 @@ export default function CommercialDiagnosticQuiz() {
 	const recommendedService =
 		selectedChallengeObj?.recommendedService || 'Consultoría y Capacitación Comercial';
 
+	const roleLabel = ROLES.find((r) => r.id === role)?.label || role;
+	const whatsappText = `Hola Leandro, completé la evaluación en tu web. Mi posición es ${roleLabel} y mi principal desafío comercial es: "${selectedChallengeObj?.label || 'desafío comercial'}". Me gustaría conversar sobre qué opción tiene más sentido para mi caso.`;
+	const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE}&text=${encodeURIComponent(whatsappText)}`;
+
+	const handleWhatsAppClick = () => {
+		trackEvent('whatsapp_click', {
+			source: 'diagnostic_quiz_result',
+			role,
+			challenge,
+			recommendedService,
+		});
+	};
+
 	const handleRoleSelect = (selectedRole) => {
 		setRole(selectedRole);
 		setChallenge('');
@@ -224,8 +239,6 @@ export default function CommercialDiagnosticQuiz() {
 				sha256(contactData.email),
 				sha256(normalizedPhone),
 			]);
-
-			const roleLabel = ROLES.find((r) => r.id === role)?.label || role;
 
 			const [{ db }, { collection, addDoc, serverTimestamp }] = await Promise.all([
 				import('@/lib/firebase'),
@@ -468,25 +481,78 @@ export default function CommercialDiagnosticQuiz() {
 					{/* PASO 4: RESULTADO PERSONALIZADO Y LLAMADA A LA ACCIÓN */}
 					{step === 4 && (
 						<div className='space-y-6'>
-							{/* Encabezado del resultado */}
+							{/* Evaluación preliminar enfocada en el dolor */}
 							<div className='p-6 rounded-2xl bg-primary/10 border border-primary/20 text-center sm:text-left'>
-								<span className='text-xs uppercase tracking-wider font-bold text-primary'>
-									Recomendación estratégica para tu perfil
+								<span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/15 text-primary mb-3'>
+									<Target className='h-3.5 w-3.5' /> Evaluación Preliminar
 								</span>
-								<h3 className='text-2xl sm:text-3xl font-extrabold text-foreground mt-1'>
-									{recommendedService}
+								<h3 className='text-xl sm:text-2xl font-extrabold text-foreground leading-snug'>
+									Por lo que nos compartís, un camino como <span className='text-[#00905E]'>{recommendedService}</span> podría tener mucho sentido para vos.
 								</h3>
-								<p className='text-sm text-muted-foreground mt-2'>
-									{role === 'profesional'
-										? 'Para tu perfil independiente, un trabajo personalizado de mentoría es el camino más directo para transformar tu efectividad y elevar tus honorarios sin perder meses en prueba y error.'
-										: role === 'dueno'
-										? 'Para la dirección de tu empresa, esta alternativa está enfocada en generar previsibilidad, autonomía y un impacto directo en el balance de resultados.'
-										: 'Para la gestión de tu fuerza comercial, este programa provee metodología práctica, herramientas de cierre y seguimiento medible.'}
+
+								{selectedChallengeObj && (
+									<div className='mt-3.5 p-3.5 rounded-xl bg-background border border-primary/20 text-sm'>
+										<p className='text-xs uppercase font-bold text-primary tracking-wide mb-1'>
+											Tu principal desafío detectado:
+										</p>
+										<p className='font-medium text-foreground italic'>
+											«{selectedChallengeObj.label}»
+										</p>
+									</div>
+								)}
+
+								<p className='text-sm text-muted-foreground mt-3.5 leading-relaxed'>
+									Sin embargo, ninguna fórmula es rígida ni genérica. Cada negocio y profesional tiene su propia dinámica. <strong>En una conversación de 30 minutos sin compromiso</strong>, podemos profundizar en tu situación real, analizar este desafío y encontrar juntos la mejor opción para alcanzar tus objetivos.
 								</p>
 							</div>
 
+							{/* Acciones directas prioritarias: Agendar llamada o WhatsApp */}
+							<div className='p-6 rounded-2xl border bg-muted/20 space-y-4'>
+								<div className='text-center sm:text-left'>
+									<h4 className='font-bold text-base sm:text-lg text-foreground'>
+										Elegí cómo preferís dar el siguiente paso:
+									</h4>
+									<p className='text-xs sm:text-sm text-muted-foreground mt-0.5'>
+										Podés reservar directamente en mi calendario o escribirme por WhatsApp para evaluar tu caso:
+									</p>
+								</div>
+
+								<div className='flex flex-col sm:flex-row items-center gap-3'>
+									<BookMeetingDialog
+										triggerText='Agendar llamada de diagnóstico'
+										triggerSize='lg'
+										source='diagnostic_quiz_result'
+										className='w-full sm:flex-1 shadow-md'
+									/>
+
+									<a
+										href={whatsappUrl}
+										target='_blank'
+										rel='noopener noreferrer'
+										onClick={handleWhatsAppClick}
+										className='w-full sm:flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-semibold h-11 px-6 text-sm shadow-md transition-all hover:scale-[1.01]'
+									>
+										<MessageCircle className='h-4 w-4 shrink-0' />
+										<span>Escribir por WhatsApp</span>
+									</a>
+								</div>
+							</div>
+
+							{/* Separador hacia el formulario por correo */}
+							<div className='relative my-4'>
+								<div className='absolute inset-0 flex items-center'>
+									<div className='w-full border-t border-border' />
+								</div>
+								<div className='relative flex justify-center text-xs uppercase'>
+									<span className='bg-card px-3 text-muted-foreground font-semibold'>
+										O si preferís recibir información por email
+									</span>
+								</div>
+							</div>
+
+							{/* Formulario opcional para recibir propuesta por email */}
 							{!isSubmitted ? (
-								<form onSubmit={handleSubmitLead} className='space-y-4 pt-2'>
+								<form onSubmit={handleSubmitLead} className='space-y-4'>
 									<div className='hidden' aria-hidden='true'>
 										<Input
 											tabIndex={-1}
@@ -498,8 +564,8 @@ export default function CommercialDiagnosticQuiz() {
 										/>
 									</div>
 
-									<p className='text-sm font-semibold text-foreground'>
-										Dejanos tus datos de contacto para enviarte la propuesta y temario detallado:
+									<p className='text-xs sm:text-sm text-muted-foreground'>
+										Dejanos tus datos y te compartimos el temario detallado y opciones por correo:
 									</p>
 
 									<div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
@@ -563,16 +629,17 @@ export default function CommercialDiagnosticQuiz() {
 									<Button
 										type='submit'
 										size='lg'
-										className='w-full py-4 text-base font-semibold shadow-md'
+										variant='outline'
+										className='w-full py-3 text-sm font-semibold'
 										disabled={isSubmitting}
 									>
 										{isSubmitting ? (
 											<>
-												<Loader2 className='mr-2 h-5 w-5 animate-spin' />
-												Enviando diagnóstico...
+												<Loader2 className='mr-2 h-4 w-4 animate-spin' />
+												Enviando consulta...
 											</>
 										) : (
-											'Recibir Propuesta y Plan de Acción'
+											'Enviar y recibir información por email'
 										)}
 									</Button>
 								</form>
@@ -580,44 +647,13 @@ export default function CommercialDiagnosticQuiz() {
 								<div className='p-6 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-center space-y-3'>
 									<CheckCircle2 className='h-10 w-10 text-green-600 mx-auto' />
 									<h4 className='text-lg font-bold text-green-800 dark:text-green-300'>
-										¡Diagnóstico recibido correctamente!
+										¡Información enviada con éxito!
 									</h4>
 									<p className='text-sm text-green-700 dark:text-green-400 max-w-md mx-auto'>
-										Revisaremos tus respuestas y te contactaremos para presentarte la solución sugerida.
+										Te contactaremos a la brevedad con la información solicitada.
 									</p>
 								</div>
 							)}
-
-							{/* Separador hacia agenda directa */}
-							<div className='relative my-6'>
-								<div className='absolute inset-0 flex items-center'>
-									<div className='w-full border-t border-border' />
-								</div>
-								<div className='relative flex justify-center text-xs uppercase'>
-									<span className='bg-card px-3 text-muted-foreground font-semibold'>
-										O si querés avanzar directamente
-									</span>
-								</div>
-							</div>
-
-							<div className='p-6 rounded-xl border bg-muted/30 text-center space-y-4'>
-								<div>
-									<h4 className='font-bold text-base sm:text-lg text-foreground'>
-										Coordiná una llamada de 30 minutos con Leandro
-									</h4>
-									<p className='text-xs sm:text-sm text-muted-foreground mt-1'>
-										Elegí un día y horario en su Google Calendar para evaluar tu caso de forma personalizada.
-									</p>
-								</div>
-								<div className='flex justify-center'>
-									<BookMeetingDialog
-										triggerText='Agendar llamada de diagnóstico'
-										triggerSize='lg'
-										source='diagnostic_quiz_result'
-										className='w-full sm:w-auto shadow-md'
-									/>
-								</div>
-							</div>
 						</div>
 					)}
 				</CardContent>
