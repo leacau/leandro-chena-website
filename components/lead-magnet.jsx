@@ -5,14 +5,23 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { DownloadCloud } from 'lucide-react';
+import { DownloadCloud, CheckCircle2 } from 'lucide-react';
+import {
+	captureUrlParams,
+	getMetaCookies,
+	getStoredAttribution,
+	normalizePhone,
+	sha256,
+	trackEvent,
+} from '@/lib/tracking';
 
 export default function LeadMagnet() {
 	const [email, setEmail] = useState('');
 	const [name, setName] = useState('');
+	const [phone, setPhone] = useState('');
 	const [website, setWebsite] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const router = useRouter(); // Instanciamos el enrutador para redireccionar
+	const router = useRouter();
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -24,6 +33,16 @@ export default function LeadMagnet() {
 				return;
 			}
 
+			captureUrlParams();
+			const attribution = getStoredAttribution();
+			const metaCookies = getMetaCookies();
+			const normalizedPhone = normalizePhone(phone);
+
+			const [emailHash, phoneHash] = await Promise.all([
+				sha256(email),
+				sha256(normalizedPhone),
+			]);
+
 			const [{ db }, { collection, addDoc, serverTimestamp }] =
 				await Promise.all([
 					import('@/lib/firebase'),
@@ -32,18 +51,32 @@ export default function LeadMagnet() {
 
 			await addDoc(collection(db, 'leads'), {
 				name: name.trim(),
-				email: email.trim(),
-				source: 'Home - Lead Magnet',
+				email: email.trim().toLowerCase(),
+				phone: normalizedPhone,
+				source: 'Home - Lead Magnet Guía Comercial',
+				lead_stage: 'nuevo',
+				attribution: {
+					...attribution,
+					fbp: metaCookies.fbp || '',
+					fbc: metaCookies.fbc || '',
+				},
+				hashed_data: {
+					em: emailHash,
+					ph: phoneHash,
+				},
 				createdAt: serverTimestamp(),
 			});
 
-			// Modificamos el mensaje para que avise de la redirección
-			toast({
-				title: '¡Acceso concedido!',
-				description: 'Redirigiendo a la sección de recursos gratuitos...',
+			trackEvent('diagnostic_submit', {
+				form_name: 'lead_magnet_home',
+				resource: 'guia_tactica_ventas',
 			});
 
-			// Redirigimos automáticamente a la página oculta
+			toast({
+				title: '¡Acceso concedido!',
+				description: 'Redirigiendo a tus recursos y herramientas gratuitas...',
+			});
+
 			router.push('/recursos');
 		} catch (error) {
 			console.error('Error al guardar el lead:', error);
@@ -53,7 +86,7 @@ export default function LeadMagnet() {
 				description:
 					'Hubo un problema al procesar tu solicitud. Intentá nuevamente.',
 			});
-			setIsSubmitting(false); // Solo liberamos el botón si hay error
+			setIsSubmitting(false);
 		}
 	};
 
@@ -70,14 +103,31 @@ export default function LeadMagnet() {
 					<p className='text-lg text-muted-foreground mb-6'>
 						Descargá gratis mi guía táctica con los pasos exactos para influir,
 						persuadir y cerrar acuerdos sin presionar a tu cliente. Ideal para
-						líderes comerciales y equipos de venta.
+						dueños de empresa, directores y equipos comerciales.
 					</p>
+					<ul className='space-y-3 text-sm text-muted-foreground'>
+						<li className='flex items-center gap-2'>
+							<CheckCircle2 className='h-4 w-4 text-primary flex-shrink-0' />
+							Estructura de conversación comercial consultiva paso a paso.
+						</li>
+						<li className='flex items-center gap-2'>
+							<CheckCircle2 className='h-4 w-4 text-primary flex-shrink-0' />
+							Respuestas tácticas a las 5 objeciones más habituales de precio.
+						</li>
+						<li className='flex items-center gap-2'>
+							<CheckCircle2 className='h-4 w-4 text-primary flex-shrink-0' />
+							Acceso inmediato a plantillas y recursos complementarios.
+						</li>
+					</ul>
 				</div>
 
-				<div className='lg:w-1/2 w-full max-w-md bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border'>
-					<h3 className='text-xl font-semibold mb-6'>
+				<div className='lg:w-1/2 w-full max-w-md bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl border'>
+					<h3 className='text-xl font-semibold mb-2'>
 						Accedé al material gratuito
 					</h3>
+					<p className='text-sm text-muted-foreground mb-6'>
+						Completá tus datos para recibir la guía al instante:
+					</p>
 					<form onSubmit={handleSubmit} className='space-y-4'>
 						<div className='hidden' aria-hidden='true'>
 							<Input
@@ -89,7 +139,7 @@ export default function LeadMagnet() {
 						</div>
 						<div>
 							<Input
-								placeholder='Tu nombre'
+								placeholder='Tu nombre completo'
 								value={name}
 								onChange={(e) => setName(e.target.value)}
 								required
@@ -104,11 +154,19 @@ export default function LeadMagnet() {
 								required
 							/>
 						</div>
-						<Button type='submit' className='w-full' disabled={isSubmitting}>
-							{isSubmitting ? 'Redirigiendo...' : 'Descargar Guía Ahora'}
+						<div>
+							<Input
+								type='tel'
+								placeholder='WhatsApp (opcional, para avisos)'
+								value={phone}
+								onChange={(e) => setPhone(e.target.value)}
+							/>
+						</div>
+						<Button type='submit' className='w-full py-3' disabled={isSubmitting}>
+							{isSubmitting ? 'Preparando descarga...' : 'Descargar Guía Ahora'}
 						</Button>
 						<p className='text-xs text-center text-muted-foreground mt-4'>
-							Tus datos están seguros. No enviamos spam.
+							Tus datos están protegidos. Sin spam ni mensajes indeseados.
 						</p>
 					</form>
 				</div>
@@ -116,4 +174,3 @@ export default function LeadMagnet() {
 		</section>
 	);
 }
-

@@ -42,7 +42,7 @@ const DialogContent = React.forwardRef<
          * - Usa inset-0 + m-auto para quedar siempre dentro del viewport.
          * - Limita altura y habilita scroll interno para contenido largo.
          */
-        "fixed inset-0 z-[10000] m-auto grid w-full max-w-lg h-fit max-h-[85vh] overflow-auto gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
+        "fixed inset-0 z-[10000] m-auto grid w-full max-w-lg h-fit max-h-[85vh] overflow-auto gap-4 border bg-white dark:bg-gray-900 text-foreground p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-2xl",
         className
       )}
       {...props}

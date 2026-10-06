@@ -56,10 +56,30 @@ service cloud.firestore {
     }
 
     match /leads/{document} {
-      allow create: if hasOnly(['name', 'email', 'source', 'createdAt'])
-        && request.resource.data.name is string
-        && request.resource.data.email is string
-        && request.resource.data.source is string;
+      allow create: if hasOnly([
+          'name',
+          'email',
+          'source',
+          'createdAt',
+          'phone',
+          'company',
+          'service',
+          'message',
+          'lead_stage',
+          'attribution',
+          'hashed_data'
+        ])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 200
+        && request.resource.data.email is string && request.resource.data.email.size() <= 320
+        && request.resource.data.source is string && request.resource.data.source.size() <= 200
+        && request.resource.data.createdAt is timestamp
+        && (!('phone' in request.resource.data) || (request.resource.data.phone is string && request.resource.data.phone.size() <= 50))
+        && (!('company' in request.resource.data) || (request.resource.data.company is string && request.resource.data.company.size() <= 200))
+        && (!('service' in request.resource.data) || (request.resource.data.service is string && request.resource.data.service.size() <= 100))
+        && (!('message' in request.resource.data) || (request.resource.data.message is string && request.resource.data.message.size() <= 5000))
+        && (!('lead_stage' in request.resource.data) || (request.resource.data.lead_stage is string && request.resource.data.lead_stage.size() <= 50))
+        && (!('attribution' in request.resource.data) || request.resource.data.attribution is map)
+        && (!('hashed_data' in request.resource.data) || request.resource.data.hashed_data is map);
       allow read, update, delete: if isAdmin();
     }
 

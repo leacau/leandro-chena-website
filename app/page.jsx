@@ -1,11 +1,10 @@
 import AboutPreview from '@/components/about-preview';
 import CallToAction from '@/components/call-to-action';
-import ContactForm from '@/components/contact-form';
+import CommercialDiagnosticQuiz from '@/components/commercial-diagnostic-quiz';
 import Hero from '@/components/hero';
 import LatestPosts from '@/components/latest-posts';
 import LeadMagnet from '@/components/lead-magnet';
 import Services from '@/components/services';
-import Testimonials from '@/components/testimonials';
 import UpcomingEvents from '@/components/upcoming-events';
 
 export default function Home() {
@@ -17,26 +16,26 @@ export default function Home() {
 			{/*<Testimonials />*/}
 
 			<UpcomingEvents />
-			<LeadMagnet />
-			<LatestPosts />
 
-			<section className='bg-primary/5 py-16'>
-				<div className='mx-auto max-w-7xl px-6 lg:px-8'>
+			{/* Sección Diagnosticador Comercial Interactivo */}
+			<section className='bg-gradient-to-b from-primary/5 via-primary/10 to-transparent py-16 px-6 lg:px-8 border-y border-primary/15'>
+				<div className='mx-auto max-w-7xl text-center mb-10'>
+					<span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/15 text-primary mb-3'>
+						Evaluación Comercial Rápida
+					</span>
 					<h2 className='text-3xl font-bold tracking-tight sm:text-4xl'>
-						Contactame
+						Descubrí la solución exacta para tu situación comercial
 					</h2>
-					<p className='mt-6 text-lg leading-8 text-muted-foreground mb-12'>
-						¿Tenés alguna pregunta o te interesan mis servicios? Completá el
-						formulario y estaremos en contacto a la brevedad.
+					<p className='mt-4 text-lg text-muted-foreground max-w-2xl mx-auto'>
+						Respondé 3 preguntas breves y obtené una recomendación a medida, ya seas dueño de empresa, líder de equipo o profesional independiente.
 					</p>
-					<section className='py-16 border-y border-primary/10'>
-						<ContactForm />
-					</section>
 				</div>
+				<CommercialDiagnosticQuiz />
 			</section>
 
+			<LeadMagnet />
+			<LatestPosts />
 			<CallToAction />
 		</div>
 	);
 }
-

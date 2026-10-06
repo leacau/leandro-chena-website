@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
     if (!loading && user) {
       if (userRole === "admin") {
         router.push("/admin/dashboard")
-      } else {
+      } else if (userRole && userRole !== "admin") {
         toast({
           title: "Acceso denegado",
           description: "No tienes permisos para acceder al panel de administración.",

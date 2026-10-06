@@ -139,7 +139,7 @@ export default function BlogPage() {
 							<CardHeader>
 								<CardTitle className='line-clamp-2'>{post.title}</CardTitle>
 								<CardDescription>
-									{post.date} | {post.category || 'Sin categoría'}
+									{post.category || 'Ventas & Liderazgo'}
 								</CardDescription>
 							</CardHeader>
 							<CardContent>

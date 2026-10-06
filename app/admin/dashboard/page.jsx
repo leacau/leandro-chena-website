@@ -7,6 +7,7 @@ import BlogManager from '@/components/admin/blog-manager';
 import EventsManager from '@/components/admin/events-manager';
 import FileManager from '@/components/admin/file-manager';
 import FirebaseStatus from '@/components/admin/firebase-status';
+import LeadsManager from '@/components/admin/leads-manager';
 import ResourcesManager from '@/components/admin/resources-manager4';
 import { Toaster } from '@/components/ui/toaster';
 import UrlShortener from '@/components/admin/url-shortener';
@@ -24,7 +25,7 @@ export default function AdminDashboardPage() {
 		if (!loading) {
 			if (!user) {
 				router.push('/admin');
-			} else if (userRole !== 'admin') {
+			} else if (userRole && userRole !== 'admin') {
 				toast({
 					title: 'Acceso denegado',
 					description:
@@ -79,14 +80,19 @@ export default function AdminDashboardPage() {
 
 				<FirebaseStatus />
 
-				<Tabs defaultValue='blog'>
+				<Tabs defaultValue='leads'>
 					<TabsList className='mb-6'>
+						<TabsTrigger value='leads'>Leads & Pipeline</TabsTrigger>
 						<TabsTrigger value='blog'>Blog</TabsTrigger>
 						<TabsTrigger value='events'>Eventos</TabsTrigger>
 						<TabsTrigger value='resources'>Recursos</TabsTrigger>
 						<TabsTrigger value='urls'>Acortador URL</TabsTrigger>
 						<TabsTrigger value='manager'>File Manager</TabsTrigger>
 					</TabsList>
+
+					<TabsContent value='leads'>
+						<LeadsManager />
+					</TabsContent>
 
 					<TabsContent value='blog'>
 						<BlogManager />

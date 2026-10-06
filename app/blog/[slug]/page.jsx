@@ -107,7 +107,6 @@ export default async function BlogPostPage({ params }) {
 				</h1>
 
 				<div className='flex flex-wrap gap-4 mb-8 text-sm text-muted-foreground'>
-					<div>{safePost.date}</div>
 					{safePost.author && <div>Por: {safePost.author}</div>}
 					{safePost.category && <div>Categoría: {safePost.category}</div>}
 				</div>

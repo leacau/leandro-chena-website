@@ -10,6 +10,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import BookMeetingDialog from '@/components/book-meeting-dialog';
 
 export const metadata = {
 	title: 'Servicios | Leandro Chena',
@@ -98,13 +99,22 @@ export default function ServiciosPage() {
 					Agendá una consulta gratuita para analizar tu situación y recomendarte
 					la mejor solución para tus necesidades.
 				</p>
-				<Button
-					asChild
-					size='lg'
-					className='w-full max-w-2xl mx-auto py-3'
-				>
-					<Link href='/contacto'>Agendar consulta gratuita</Link>
-				</Button>
+				<div className='flex flex-col sm:flex-row justify-center items-center gap-4 max-w-xl mx-auto'>
+					<BookMeetingDialog
+						triggerText='Agendar llamada de diagnóstico (15 min)'
+						triggerSize='lg'
+						source='servicios_index_footer'
+						className='w-full sm:w-auto'
+					/>
+					<Button
+						asChild
+						variant='outline'
+						size='lg'
+						className='w-full sm:w-auto py-3'
+					>
+						<Link href='/contacto'>Completar formulario</Link>
+					</Button>
+				</div>
 			</div>
 		</div>
 	);
