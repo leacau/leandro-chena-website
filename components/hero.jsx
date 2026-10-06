@@ -36,7 +36,7 @@ export default function Hero() {
 					</div>
 				</div>	
 				<div className='mt-16 sm:mt-24 lg:mt-0 lg:flex-shrink-0 lg:flex-grow'>
-					<div className='relative mx-auto h-80 w-80 overflow-hidden rounded-full md:h-96 md:w-96 shadow-2xl border-4 border-background'>
+					<div className='relative mx-auto h-80 w-80 overflow-hidden rounded-full md:h-96 md:w-96 shadow-2xl'>
 						<Image
 							src='/images/hero-image.webp'
 							alt='Leandro Chena'
