@@ -7,13 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import {
 	captureUrlParams,
@@ -60,17 +53,6 @@ function ContactFormInner() {
 			});
 		}
 		setFormData((prev) => ({ ...prev, [name]: value }));
-	};
-
-	const handleServiceChange = (value) => {
-		if (!hasStarted) {
-			setHasStarted(true);
-			trackEvent('diagnostic_start', {
-				form_name: 'contact_form',
-				service: value,
-			});
-		}
-		setFormData((prev) => ({ ...prev, service: value }));
 	};
 
 	const handleSubmit = async (e) => {
@@ -263,32 +245,6 @@ function ContactFormInner() {
 								placeholder='Nombre de tu empresa o rubro'
 							/>
 						</div>
-					</div>
-
-					<div>
-						<Label htmlFor='service'>Servicio de interés</Label>
-						<Select
-							name='service'
-							value={formData.service}
-							onValueChange={handleServiceChange}
-						>
-							<SelectTrigger id='service'>
-								<SelectValue placeholder='Seleccioná un servicio' />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value='capacitaciones'>
-									Capacitaciones para Equipos Comerciales
-								</SelectItem>
-								<SelectItem value='consultoria'>
-									Consultoría para Empresas
-								</SelectItem>
-								<SelectItem value='charlas'>
-									Charlas Motivacionales y Conferencias
-								</SelectItem>
-								<SelectItem value='mentorias'>Mentorías 1:1</SelectItem>
-								<SelectItem value='otro'>Aún no estoy seguro / Otro</SelectItem>
-							</SelectContent>
-						</Select>
 					</div>
 
 					<div>
